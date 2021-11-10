@@ -1,0 +1,116 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "make",
+            "dependsOn": [],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "rebuild",
+            "type": "shell",
+            "command": "make rebuild",
+            "dependsOn": [],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "make clean",
+            "dependsOn": [],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+//        {
+//            "label": "flash",
+//            "type": "shell",
+//            "command": "ST-LINK_CLI.exe",
+//            "args": [ // Args doesn't allows spaces in strings"
+//                "-c", // 1* Connection settings
+//                "SWD",
+//                "SWCLK=4000",
+//                "LPM",
+//                "Srst", // *1
+//                "-P", // 2* Flash-file 
+//                "./build/WordCode.hex", // *2
+//                "-Rst", // Reset after flash
+//            ],
+//            "dependsOn": [],
+//            "runOptions": {
+//                "instanceLimit": 1
+//            },
+//            "problemMatcher": [],
+//            "group": {
+//                "kind": "build",
+//                "isDefault": true
+//            }
+//        },
+//        {
+//            "label": "flash (build before)",
+//            "type": "shell",
+//            "command": "ST-LINK_CLI.exe",
+//            "args": [ // Args doesn't allows spaces in strings"
+//                "-c", // 1* Connection settings
+//                "SWD",
+//                "SWCLK=4000",
+//                "LPM",
+//                "Srst", // *1
+//                "-P", // 2* Flash-file 
+//                "./build/WordCode.hex", // *2
+//                "-Rst", // Reset after flash
+//            ],
+//            "dependsOn": [
+//                "build" // Force build when doing a flash
+//            ],
+//            "runOptions": {
+//                "instanceLimit": 1
+//            },
+//            "problemMatcher": [],
+//            "group": {
+//                "kind": "build",
+//                "isDefault": true
+//            }
+//        },
+//        {
+//            "label": "flash (rebuild before)",
+//            "type": "shell",
+//            "command": "ST-LINK_CLI.exe",
+//            "args": [ // Args doesn't allows spaces in strings"
+//                "-c", // 1* Connection settings
+//                "SWD",
+//                "SWCLK=4000",
+//                "LPM",
+//                "Srst", // *1
+//                "-P", // 2* Flash-file 
+//                "./build/WordCode.hex", // *2
+//                "-Rst", // Reset after flash
+//            ],
+//            "dependsOn": [
+//                "rebuild" // Force build when doing a flash
+//            ],
+//            "runOptions": {
+//                "instanceLimit": 1
+//            },
+//            "problemMatcher": [],
+//            "group": {
+//                "kind": "build",
+//                "isDefault": true
+//            }
+//        },
+    ]
+}

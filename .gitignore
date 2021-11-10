@@ -1,0 +1,12 @@
+### Ignored folders ###
+build
+#######################
+
+### Ignored files (wildcard) ###
+*.ioc
+.vscode/.cortex-debug*
+################################
+
+### Ignored files (specific) ###
+STM32F103VE/(unused template-file for sysclk) system_stm32f10x.c
+################################
