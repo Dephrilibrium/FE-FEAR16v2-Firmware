@@ -4,8 +4,9 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "./include",
-                "./include/system"
+                "./TM4C123GH6PM",
+                "./TM4C123GH6PM/CMSIS",
+                "./TM4C123GH6PM/system"
             ],
             "defines": [],
             "compilerPath": "arm-none-eabi-gcc",

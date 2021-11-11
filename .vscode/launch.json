@@ -6,7 +6,7 @@
     "configurations": [
         {
             "cwd": "${fileDirname}/",
-            "executable": "../build/FEAR-16.elf",
+            "executable": "${workspaceFolder}/build/FEAR-16.elf",
             "name": "ARM Local GDB",
             "request": "launch",
             "type": "cortex-debug",
@@ -14,7 +14,7 @@
             // If your OpenOCD is not on PATH, uncomment next line and 
             // specify path to openocd.exe.
             //"serverpath": "",
-            "svdFile": "./TM4C123GH6PM/TM4C123GH6PM.svd.xml",
+            "svdFile": "${workspaceFolder}/TM4C123GH6PM/TM4C123GH6PM.svd.xml",
             "configFiles": [
                 "board/ek-tm4c123gxl.cfg"
             ],
