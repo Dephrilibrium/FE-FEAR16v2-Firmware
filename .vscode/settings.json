@@ -1,8 +1,10 @@
 {
-    "files.associations": {
-        "tm4c123gh6pm.h": "c",
-        "sysclk.h": "c",
-        "helper.h": "c"
-    },
-    "cortex-debug.variableUseNaturalFormat": true
+  "files.associations": {
+    "tm4c123gh6pm.h": "c",
+    "sysclk.h": "c",
+    "helper.h": "c",
+    "uart.h": "c",
+    "uart1.h": "c"
+  },
+  "cortex-debug.variableUseNaturalFormat": true
 }

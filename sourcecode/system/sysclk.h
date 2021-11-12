@@ -1,5 +1,5 @@
-#ifndef __SYSTEM_H
-#define __SYSTEM_H
+#ifndef SYSCLK_H
+#define SYSCLK_H
 
 
 unsigned long sys_clk_freq();

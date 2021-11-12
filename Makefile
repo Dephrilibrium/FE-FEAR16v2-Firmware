@@ -21,7 +21,7 @@ TARGET = FEAR-16
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
+OPT = -O0
 # silent compile (comment for full output!)
 .SILENT:
 
@@ -140,7 +140,7 @@ $(sort $(dir $(wildcard $(BASE_DIR)/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/))) \
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
 
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Wno-unknown-pragmas -fdata-sections -ffunction-sections
+CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Wno-unknown-pragmas -Wno-unused-function -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2
