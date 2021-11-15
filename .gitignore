@@ -5,6 +5,7 @@ build
 ### Ignored files (wildcard) ###
 *.ioc
 .vscode/.cortex-debug*
+*.log
 ################################
 
 ### Ignored files (specific) ###

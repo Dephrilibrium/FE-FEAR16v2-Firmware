@@ -75,161 +75,163 @@ Default_Handler:
 	.global __Vectors
 
 __Vectors:
-	.word	__stack			// Top of stack
-	.word	Reset_Handler		// Reset handler
-	.word	NMI_Handler		// Non Maskable Interrupt handler
-	.word	HardFault_Handler	// Hard fault handler
-	.word	MemManage_Handler	// MPU fault handler
-	.word	BusFault_Handler	// Bus Fault Handler
-	.word	UsageFault_Handler	// Usage Fault Handler
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	SVC_Handler		// SVCall Handler
-	.word	DebugMon_Handler	// Debug Monitor Handler
-	.word	0			// Reserved
-	.word	PendSV_Handler	// PendSV Handler
-	.word	SysTick_Handler	// SysTick Handler
-	.word	GPIOPortA_Handler	// GPIO Port A
-	.word	GPIOPortB_Handler	// GPIO Port B
-	.word	GPIOPortC_Handler	// GPIO Port C
-	.word	GPIOPortD_Handler	// GPIO Port D
-	.word	GPIOPortE_Handler	// GPIO Port E
-	.word	UART0_Handler		// UART0 Rx and Tx
-	.word	UART1_Handler		// UART1 Rx and Tx
-	.word	SSI0_Handler		// SSI0 Rx and Tx
-	.word	I2C0_Handler		// I2C0 Master and Slave
-	.word	PWM0Fault_Handler	// PWM 0 Fault
-	.word	PWM0Generator0_Handler	// PWM 0 Generator 0
-	.word	PWM0Generator1_Handler	// PWM 0 Generator 1
-	.word	PWM0Generator2_Handler	// PWM 0 Generator 2
-	.word	Quadrature0_Handler	// Quadrature Encoder 0
-	.word	ADC0Seq0_Handler	// ADC0 Sequence 0
-	.word	ADC0Seq1_Handler	// ADC0 Sequence 1
-	.word	ADC0Seq2_Handler	// ADC0 Sequence 2
-	.word	ADC0Seq3_Handler	// ADC0 Sequence 3
-	.word	WDT_Handler		// Watchdog
-	.word	Timer0A_Handler		// Timer 0 subtimer A
-	.word	Timer0B_Handler		// Timer 0 subtimer B
-	.word	Timer1A_Handler		// Timer 1 subtimer A
-	.word	Timer1B_Handler		// Timer 1 subtimer B
-	.word	Timer2A_Handler		// Timer 2 subtimer A
-	.word	Timer2B_Handler		// Timer 2 subtimer B
-	.word	Comp0_Handler		// Analog Comp 0
-	.word	Comp1_Handler		// Analog Comp 1
-	.word	Comp2_Handler		// Analog Comp 2
-	.word	SysCtl_Handler		// System Control
-	.word	FlashCtl_Handler	// Flash Control
-	.word	GPIOPortF_Handler	// GPIO Port F
-	.word	GPIOPortG_Handler	// GPIO Port G
-	.word	GPIOPortH_Handler	// GPIO Port H
-	.word	UART2_Handler		// UART2 Rx and Tx
-	.word	SSI1_Handler		// SSI1 Rx and Tx
-	.word	Timer3A_Handler		// Timer 3 subtimer A
-	.word	Timer3B_Handler		// Timer 3 subtimer B
-	.word	I2C1_Handler		// I2C1 Master and Slave
-	.word	Quadrature1_Handler	// Quadrature Encoder 1
-	.word	CAN0_Handler		// CAN0
-	.word	CAN1_Handler		// CAN1
-	.word	CAN2_Handler		// CAN2
-	.word	Ethernet_Handler	// Ethernet
-	.word	Hibernate_Handler	// Hibernate
-	.word	USB0_Handler		// USB0
-	.word	PWM0Generator3_Handler	// PWM 0 Generator 3
-	.word	uDMA_Handler		// uDMA Software Transfer
-	.word	uDMA_Error		// uDMA Error
-	.word	ADC1Seq0_Handler	// ADC1 Sequence 0
-	.word	ADC1Seq1_Handler	// ADC1 Sequence 1
-	.word	ADC1Seq2_Handler	// ADC1 Sequence 2
-	.word	ADC1Seq3_Handler	// ADC1 Sequence 3
-	.word	I2S0_Handler		// I2S0
-	.word	ExtBus_Handler		// External Bus Interface 0
-	.word	GPIOPortJ_Handler	// GPIO Port J
-	.word	GPIOPortK_Handler	// GPIO Port K
-	.word	GPIOPortL_Handler	// GPIO Port L
-	.word	SSI2_Handler		// SSI2 Rx and Tx
-	.word	SSI3_Handler		// SSI3 Rx and Tx
-	.word	UART3_Handler		// UART3 Rx and Tx
-	.word	UART4_Handler		// UART4 Rx and Tx
-	.word	UART5_Handler		// UART5 Rx and Tx
-	.word	UART6_Handler		// UART6 Rx and Tx
-	.word	UART7_Handler		// UART7 Rx and Tx
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	I2C2_Handler		// I2C2 Master and Slave
-	.word	I2C3_Handler		// I2C3 Master and Slave
-	.word	Timer4A_Handler		// Timer 4 subtimer A
-	.word	Timer4B_Handler		// Timer 4 subtimer B
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	0			// Reserved
-	.word	Timer5A_Handler		// Timer 5 subtimer A
-	.word	Timer5B_Handler		// Timer 5 subtimer B
-	.word	WideTimer0A_Handler	// Wide Timer 0 subtimer A
-	.word	WideTimer0B_Handler	// Wide Timer 0 subtimer B
-	.word	WideTimer1A_Handler	// Wide Timer 1 subtimer A
-	.word	WideTimer1B_Handler	// Wide Timer 1 subtimer B
-	.word	WideTimer2A_Handler	// Wide Timer 2 subtimer A
-	.word	WideTimer2B_Handler	// Wide Timer 2 subtimer B
-	.word	WideTimer3A_Handler	// Wide Timer 3 subtimer A
-	.word	WideTimer3B_Handler	// Wide Timer 3 subtimer B
-	.word	WideTimer4A_Handler	// Wide Timer 4 subtimer A
-	.word	WideTimer4B_Handler	// Wide Timer 4 subtimer B
-	.word	WideTimer5A_Handler	// Wide Timer 5 subtimer A
-	.word	WideTimer5B_Handler	// Wide Timer 5 subtimer B
-	.word	FPU_Handler		// FPU
-	.word	PECI0_Handler		// PECI 0
-	.word	LPC0_Handler		// LPC 0
-	.word	I2C4_Handler		// I2C4 Master and Slave
-	.word	I2C5_Handler		// I2C5 Master and Slave
-	.word	GPIOPortM_Handler	// GPIO Port M
-	.word	GPIOPortN_Handler	// GPIO Port N
-	.word	Quadrature2_Handler	// Quadrature Encoder 2
-	.word	Fan0_Handler		// Fan 0
-	.word	0			// Reserved
-	.word	GPIOPortP_Handler	// GPIO Port P (Summary or P0)
-	.word	GPIOPortP1_Handler	// GPIO Port P1
-	.word	GPIOPortP2_Handler	// GPIO Port P2
-	.word	GPIOPortP3_Handler	// GPIO Port P3
-	.word	GPIOPortP4_Handler	// GPIO Port P4
-	.word	GPIOPortP5_Handler	// GPIO Port P5
-	.word	GPIOPortP6_Handler	// GPIO Port P6
-	.word	GPIOPortP7_Handler	// GPIO Port P7
-	.word	GPIOPortQ_Handler	// GPIO Port Q (Summary or Q0)
-	.word	GPIOPortQ1_Handler	// GPIO Port Q1
-	.word	GPIOPortQ2_Handler	// GPIO Port Q2
-	.word	GPIOPortQ3_Handler	// GPIO Port Q3
-	.word	GPIOPortQ4_Handler	// GPIO Port Q4
-	.word	GPIOPortQ5_Handler	// GPIO Port Q5
-	.word	GPIOPortQ6_Handler	// GPIO Port Q6
-	.word	GPIOPortQ7_Handler	// GPIO Port Q7
-	.word	GPIOPortR_Handler	// GPIO Port R
-	.word	GPIOPortS_Handler	// GPIO Port S
-	.word	PWM1Generator0_Handler	// PWM 1 Generator 0
-	.word	PWM1Generator1_Handler	// PWM 1 Generator 1
-	.word	PWM1Generator2_Handler	// PWM 1 Generator 2
-	.word	PWM1Generator3_Handler	// PWM 1 Generator 3
-	.word	PWM1Fault_Handler	// PWM 1 Fault
+    .word    __stack                            // Top of Stack
+    .word    Reset_Handler                      // Reset Handler
+    .word    NMI_Handler                        // NMI Handler
+    .word    HardFault_Handler                  // Hard Fault Handler
+    .word    MemManage_Handler                  // MPU Fault Handler
+    .word    BusFault_Handler                   // Bus Fault Handler
+    .word    UsageFault_Handler                 // Usage Fault Handler
+    .word    0                                  // Reserved
+    .word    0                                  // Reserved
+    .word    0                                  // Reserved
+    .word    0                                  // Reserved
+    .word    SVC_Handler                        // SVCall Handler
+    .word    DebugMon_Handler                   // Debug Monitor Handler
+    .word    0                                  // Reserved
+    .word    PendSV_Handler                     // PendSV Handler
+    .word    SysTick_Handler                    // SysTick Handler
+    
+    // External Interrupts
+    .word    GPIOPortA_Handler                  //   0: GPIO Port A
+    .word    GPIOPortB_Handler                  //   1: GPIO Port B
+    .word    GPIOPortC_Handler                  //   2: GPIO Port C
+    .word    GPIOPortD_Handler                  //   3: GPIO Port D
+    .word    GPIOPortE_Handler                  //   4: GPIO Port E
+    .word    UART0_Handler                      //   5: UART0 Rx and Tx
+    .word    UART1_Handler                      //   6: UART1 Rx and Tx
+    .word    SSI0_Handler                       //   7: SSI0 Rx and Tx
+    .word    I2C0_Handler                       //   8: I2C0 Master and Slave
+    .word    PWM0Fault_Handler                  //   9: PWM Fault
+    .word    PWM0Generator0_Handler             //  10: PWM Generator 0
+    .word    PWM0Generator1_Handler             //  11: PWM Generator 1
+    .word    PWM0Generator2_Handler             //  12: PWM Generator 2
+    .word    Quadrature0_Handler                //  13: Quadrature Encoder 0
+    .word    ADC0Seq0_Handler                   //  14: ADC Sequence 0
+    .word    ADC0Seq1_Handler                   //  15: ADC Sequence 1
+    .word    ADC0Seq2_Handler                   //  16: ADC Sequence 2
+    .word    ADC0Seq3_Handler                   //  17: ADC Sequence 3
+    .word    WDT_Handler                        //  18: Watchdog timer
+    .word    Timer0A_Handler                    //  19: Timer 0 subtimer A
+    .word    Timer0B_Handler                    //  20: Timer 0 subtimer B
+    .word    Timer1A_Handler                    //  21: Timer 1 subtimer A
+    .word    Timer1B_Handler                    //  22: Timer 1 subtimer B
+    .word    Timer2A_Handler                    //  23: Timer 2 subtimer A
+    .word    Timer2B_Handler                    //  24: Timer 2 subtimer B
+    .word    Comp0_Handler                      //  25: Analog Comparator 0
+    .word    Comp1_Handler                      //  26: Analog Comparator 1
+    .word    Comp2_Handler                      //  27: Analog Comparator 2
+    .word    SysCtl_Handler                     //  28: System Control (PLL, OSC, B
+    .word    FlashCtl_Handler                   //  29: FLASH Control
+    .word    GPIOPortF_Handler                  //  30: GPIO Port F
+    .word    GPIOPortG_Handler                  //  31: GPIO Port G
+    .word    GPIOPortH_Handler                  //  32: GPIO Port H
+    .word    UART2_Handler                      //  33: UART2 Rx and Tx
+    .word    SSI1_Handler                       //  34: SSI1 Rx and Tx
+    .word    Timer3A_Handler                    //  35: Timer 3 subtimer A
+    .word    Timer3B_Handler                    //  36: Timer 3 subtimer B
+    .word    I2C1_Handler                       //  37: I2C1 Master and Slave
+    .word    Quadrature1_Handler                //  38: Quadrature Encoder 1
+    .word    CAN0_Handler                       //  39: CAN0
+    .word    CAN1_Handler                       //  40: CAN1
+    .word    CAN2_Handler                       //  41: CAN2
+    .word    0                                  //  42: Reserved
+    .word    Hibernate_Handler                  //  43: Hibernate
+    .word    USB0_Handler                       //  44: USB0
+    .word    PWM0Generator3_Handler             //  45: PWM Generator 3
+    .word    uDMA_Handler                       //  46: uDMA Software Transfer
+    .word    uDMA_Error                         //  47: uDMA Error
+    .word    ADC1Seq0_Handler                   //  48: ADC1 Sequence 0
+    .word    ADC1Seq1_Handler                   //  49: ADC1 Sequence 1
+    .word    ADC1Seq2_Handler                   //  50: ADC1 Sequence 2
+    .word    ADC1Seq3_Handler                   //  51: ADC1 Sequence 3
+    .word    0                                  //  52: Reserved
+    .word    0                                  //  53: Reserved
+    .word    0                                  //  54: Reserved
+    .word    0                                  //  55: Reserved
+    .word    0                                  //  56: Reserved
+    .word    SSI2_Handler                       //  57: SSI2 Rx and Tx
+    .word    SSI3_Handler                       //  58: SSI3 Rx and Tx
+    .word    UART3_Handler                      //  59: UART3 Rx and Tx
+    .word    UART4_Handler                      //  60: UART4 Rx and Tx
+    .word    UART5_Handler                      //  61: UART5 Rx and Tx
+    .word    UART6_Handler                      //  62: UART6 Rx and Tx
+    .word    UART7_Handler                      //  63: UART7 Rx and Tx
+    .word    0                                  //  64: Reserved
+    .word    0                                  //  65: Reserved
+    .word    0                                  //  66: Reserved
+    .word    0                                  //  67: Reserved
+    .word    I2C2_Handler                       //  68: I2C2 Master and Slave
+    .word    I2C3_Handler                       //  69: I2C3 Master and Slave
+    .word    Timer4A_Handler                    //  70: Timer 4 subtimer A
+    .word    Timer4B_Handler                    //  71: Timer 4 subtimer B
+    .word    0                                  //  72: Reserved
+    .word    0                                  //  73: Reserved
+    .word    0                                  //  74: Reserved
+    .word    0                                  //  75: Reserved
+    .word    0                                  //  76: Reserved
+    .word    0                                  //  77: Reserved
+    .word    0                                  //  78: Reserved
+    .word    0                                  //  79: Reserved
+    .word    0                                  //  80: Reserved
+    .word    0                                  //  81: Reserved
+    .word    0                                  //  82: Reserved
+    .word    0                                  //  83: Reserved
+    .word    0                                  //  84: Reserved
+    .word    0                                  //  85: Reserved
+    .word    0                                  //  86: Reserved
+    .word    0                                  //  87: Reserved
+    .word    0                                  //  88: Reserved
+    .word    0                                  //  89: Reserved
+    .word    0                                  //  90: Reserved
+    .word    0                                  //  91: Reserved
+    .word    Timer5A_Handler                    //  92: Timer 5 subtimer A
+    .word    Timer5B_Handler                    //  93: Timer 5 subtimer B
+    .word    WideTimer0A_Handler                //  94: Wide Timer 0 subtimer A
+    .word    WideTimer0B_Handler                //  95: Wide Timer 0 subtimer B
+    .word    WideTimer1A_Handler                //  96: Wide Timer 1 subtimer A
+    .word    WideTimer1B_Handler                //  97: Wide Timer 1 subtimer B
+    .word    WideTimer2A_Handler                //  98: Wide Timer 2 subtimer A
+    .word    WideTimer2B_Handler                //  99: Wide Timer 2 subtimer B
+    .word    WideTimer3A_Handler                // 100: Wide Timer 3 subtimer A
+    .word    WideTimer3B_Handler                // 101: Wide Timer 3 subtimer B
+    .word    WideTimer4A_Handler                // 102: Wide Timer 4 subtimer A
+    .word    WideTimer4B_Handler                // 103: Wide Timer 4 subtimer B
+    .word    WideTimer5A_Handler                // 104: Wide Timer 5 subtimer A
+    .word    WideTimer5B_Handler                // 105: Wide Timer 5 subtimer B
+    .word    FPU_Handler                        // 106: FPU
+    .word    0                                  // 107: Reserved
+    .word    0                                  // 108: Reserved
+    .word    I2C4_Handler                       // 109: I2C4 Master and Slave
+    .word    I2C5_Handler                       // 110: I2C5 Master and Slave
+    .word    GPIOPortM_Handler                  // 111: GPIO Port M
+    .word    GPIOPortN_Handler                  // 112: GPIO Port N
+    .word    Quadrature2_Handler                // 113: Quadrature Encoder 2
+    .word    0                                  // 114: Reserved
+    .word    0                                  // 115: Reserved
+    .word    GPIOPortP_Handler                  // 116: GPIO Port P (Summary or P0)
+    .word    GPIOPortP1_Handler                 // 117: GPIO Port P1
+    .word    GPIOPortP2_Handler                 // 118: GPIO Port P2
+    .word    GPIOPortP3_Handler                 // 119: GPIO Port P3
+    .word    GPIOPortP4_Handler                 // 120: GPIO Port P4
+    .word    GPIOPortP5_Handler                 // 121: GPIO Port P5
+    .word    GPIOPortP6_Handler                 // 122: GPIO Port P6
+    .word    GPIOPortP7_Handler                 // 123: GPIO Port P7
+    .word    GPIOPortQ_Handler                  // 124: GPIO Port Q (Summary or Q0)
+    .word    GPIOPortQ1_Handler                 // 125: GPIO Port Q1
+    .word    GPIOPortQ2_Handler                 // 126: GPIO Port Q2
+    .word    GPIOPortQ3_Handler                 // 127: GPIO Port Q3
+    .word    GPIOPortQ4_Handler                 // 128: GPIO Port Q4
+    .word    GPIOPortQ5_Handler                 // 129: GPIO Port Q5
+    .word    GPIOPortQ6_Handler                 // 130: GPIO Port Q6
+    .word    GPIOPortQ7_Handler                 // 131: GPIO Port Q7
+    .word    GPIOPortR_Handler                  // 132: GPIO Port R
+    .word    GPIOPortS_Handler                  // 133: GPIO Port S
+    .word    PWM1Generator0_Handler             // 134: PWM 1 Generator 0
+    .word    PWM1Generator1_Handler             // 135: PWM 1 Generator 1
+    .word    PWM1Generator2_Handler             // 136: PWM 1 Generator 2
+    .word    PWM1Generator3_Handler             // 137: PWM 1 Generator 3
+    .word    PWM1Fault_Handler                  // 138: PWM 1 Fault
 
 	.size __Vectors, .-__Vectors
 
