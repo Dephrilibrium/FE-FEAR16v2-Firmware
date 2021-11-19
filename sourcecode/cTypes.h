@@ -1,27 +1,25 @@
+#ifndef CTYPES_H
+#define CTYPES_H
+
 /*******************************\
 | Includes
 \*******************************/
 /* Std-Libs */
-#include "TM4C123GH6PM.h"
+#include "stdint.h"
+#include "stdio.h"
 
 /* Project specific */
 
 /*******************************\
-| Local function declarations
+| Defines
 \*******************************/
 
 /*******************************\
-| Global variables
+| Enum/Struct/Union
 \*******************************/
 
 /*******************************\
-| Function definitons
+| Function declaration
 \*******************************/
-int main(void)
-{
 
-    while(1)
-    {
-
-    }
-}
+#endif

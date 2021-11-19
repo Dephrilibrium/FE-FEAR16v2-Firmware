@@ -1,21 +1,15 @@
-#ifndef HELPER_H
-#define HELPER_H
-
+#ifndef CSTRING_H
+#define CSTRING_H
 /*******************************\
 | Includes
 \*******************************/
 /* Std-Libs */
-#include "stdint.h"
 
 /* Project specific */
 
 /*******************************\
 | Defines
 \*******************************/
-#define PIOSC_MHZ (uint32_t)16e6 // PIOSC is a internal high precision 16MHz (+-3%) clock source
-
-#define BIT(x) (uint32_t)(1<<x) // Shifts a bit to position by "x"
-#define OPTION(x, y) (uint32_t)(x<<y) // Shifts an option "x" to position by "y"
 
 /*******************************\
 | Enum/Struct/Union
@@ -24,6 +18,11 @@
 /*******************************\
 | Function declaration
 \*******************************/
-
+char *c_strcpy(char *dst, const char *src);
+char *c_strtok(char *dst, const char *delim);
+int c_strcmp(const char *str1, const char *str2);
+int c_strlen(const char *str);
+// int c_toLower(char *str);
+// int c_toUower(char *str);
 
 #endif

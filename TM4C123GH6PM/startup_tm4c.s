@@ -53,7 +53,8 @@ loop_copydata:
 	bcc	copydata
 
 	// Branch to user code
-	bl	main
+	//  Main needs to be called by _start to init the C-runtime (otherwise stuff like strtok won't work!)
+	bl	_start 
 
 	.pool
 	.size Reset_Handler, .-Reset_Handler
