@@ -10,4 +10,5 @@ build
 
 ### Ignored files (specific) ###
 STM32F103VE/(unused template-file for sysclk) system_stm32f10x.c
+.vscode/settings.json
 ################################
