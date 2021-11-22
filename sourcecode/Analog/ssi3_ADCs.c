@@ -4,7 +4,11 @@
 /* Std-Libs */
 
 /* Project specific */
-#include "spi0_DACs.h"
+#include "spi3_ADCs.h"
+
+/*******************************\
+| Local Defines
+\*******************************/
 
 /*******************************\
 | Local function declarations
@@ -17,6 +21,6 @@
 /*******************************\
 | Function definitons
 \*******************************/
-void spi0_init_DACs(void)
+void spi3_init_ADCs(void)
 {
 }

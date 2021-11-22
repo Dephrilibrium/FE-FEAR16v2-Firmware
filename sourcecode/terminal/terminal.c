@@ -8,6 +8,10 @@
 #include "uart1.h"
 
 /*******************************\
+| Local Defines
+\*******************************/
+
+/*******************************\
 | Local function declarations
 \*******************************/
 void terminal_clearLineBuffer(void); // Clear linebuffer ('\0' to first char)

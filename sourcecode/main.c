@@ -2,12 +2,17 @@
 | Includes
 \*******************************/
 /* Std-Libs */
-#include "TM4C123GH6PM.h"
 
 /* Project specific */
+#include "TM4C123GH6PM.h"
 #include "sysclk.h"
 #include "uart1.h"
 #include "terminal.h"
+#include "ssi0_DACs.h"
+
+/*******************************\
+| Local Defines
+\*******************************/
 
 /*******************************\
 | Local function declarations
@@ -28,11 +33,10 @@ int main(void)
     sys_clk_set(); // Set 80MHz
     uart1_init(921600);
     terminal_init();
+    // ssi0_init(ssi0_clkRate_1MHz);
 
     // Other stuff
     uart1_Transmit("Hallo welt! Ich schreibe einen längeren Text");
-    uart1_Transmit(lineTerm.stdlineTerm);
-    uart1_Transmit("mit ein paar transmits, damit ich sehe was passiert");
     uart1_Transmit(lineTerm.stdlineTerm);
 
     while (1)
