@@ -9,7 +9,6 @@
 
 /* Project specific */
 #include "common.h"
-#include "cTypes.h"
 
 /*******************************\
 | Defines

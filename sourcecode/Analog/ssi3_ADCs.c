@@ -4,7 +4,7 @@
 /* Std-Libs */
 
 /* Project specific */
-#include "spi3_ADCs.h"
+#include "ssi3_ADCs.h"
 
 /*******************************\
 | Local Defines

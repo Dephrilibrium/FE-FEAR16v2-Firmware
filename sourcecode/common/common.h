@@ -35,5 +35,6 @@ typedef enum cBoolean cBool;
 /*******************************\
 | Function declaration
 \*******************************/
+void delay(uint32_t delay);
 
 #endif

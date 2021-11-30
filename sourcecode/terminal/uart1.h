@@ -6,6 +6,7 @@
 \*******************************/
 /* Std-Libs */
 #include "stdint.h"
+#include "stddef.h"
 
 /* Project specific */
 #include "common.h"
@@ -17,6 +18,12 @@
 /*******************************\
 | Enum/Struct/Union
 \*******************************/
+enum UART1_SendingStatus
+{
+    UART1_Sending_Idle = 0,
+    UART1_Sending_Busy,
+};
+
 enum UART1_FIFO_Status
 {
     UART1_FIFO_Empty = 0x00,
@@ -40,7 +47,7 @@ uint32_t uart1_getBaud(void);
 void uart1_enable(void);
 void uart1_disable(void);
 
-// enum UART1_FIFO_Status uart1_RxFifoStatus(void);
+enum UART1_SendingStatus uart1_SendingStatus(void);
 enum UART1_FIFO_Status uart1_RxFifoStatus(void);
 enum UART1_FIFO_Status uart1_TxFifoStatus(void);
 

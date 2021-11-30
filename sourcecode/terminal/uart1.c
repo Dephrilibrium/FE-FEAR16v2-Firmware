@@ -151,6 +151,14 @@ uint32_t uart1_getBaud(void)
     return uart1_baudrate;
 }
 
+enum UART1_SendingStatus uart1_SendingStatus(void)
+{
+    if (UART1->FR &= UART1_FR_BUSY)
+        return UART1_Sending_Busy;
+
+    return UART1_Sending_Idle;
+}
+
 enum UART1_FIFO_Status uart1_RxFifoStatus(void)
 {
     uint32_t FR = UART1->FR;
@@ -185,8 +193,8 @@ char uart1_getc()
 
 void uart1_putc(const char c)
 {
-    while (uart1_TxFifoStatus() != UART1_FIFO_Empty)
-        ; // Wait for space in TxFIFO
+    while (uart1_TxFifoStatus() != UART1_FIFO_Empty) // Check for FIFO_Full led to missing chars in output!
+        ;                                            // Wait for space in TxFIFO
 
     UART1->DR = c;
 }

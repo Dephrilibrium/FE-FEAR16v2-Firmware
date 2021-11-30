@@ -1,25 +1,25 @@
-#ifndef CTYPES_H
-#define CTYPES_H
-
 /*******************************\
 | Includes
 \*******************************/
 /* Std-Libs */
-#include "stdint.h"
-#include "stdio.h"
 
 /* Project specific */
 
 /*******************************\
-| Defines
+| Local Defines
+\*******************************/
+#pragma region Hardwaredefines
+
+#pragma endregion Hardwaredefines
+
+/*******************************\
+| Local function declarations
 \*******************************/
 
 /*******************************\
-| Enum/Struct/Union
+| Global variables
 \*******************************/
 
 /*******************************\
-| Function declaration
+| Function definitons
 \*******************************/
-
-#endif

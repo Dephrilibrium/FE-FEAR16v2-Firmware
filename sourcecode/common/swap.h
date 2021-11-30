@@ -1,9 +1,10 @@
-#ifndef CSTRING_H
-#define CSTRING_H
+#ifndef INCLUDE_PROTECTION_H
+#define INCLUDE_PROTECTION_H
 /*******************************\
 | Includes
 \*******************************/
 /* Std-Libs */
+#include "stdint.h"
 
 /* Project specific */
 
@@ -18,11 +19,12 @@
 /*******************************\
 | Function declaration
 \*******************************/
-char *c_strcpy(char *dst, const char *src);
-char *c_strtok(char *dst, const char *delim);
-int c_strcmp(const char *str1, const char *str2);
-int c_strlen(const char *str);
-// int c_toLower(char *str);
-// int c_toUower(char *str);
+uint8_t rbit_byte(uint8_t byte);
+uint16_t rbit_word(uint16_t word);
+uint32_t rbit_dword(uint32_t dword);
+
+uint8_t swap_byte(uint8_t byte);
+uint16_t swap_word(uint16_t word);
+uint32_t swap_dword(uint32_t dword);
 
 #endif

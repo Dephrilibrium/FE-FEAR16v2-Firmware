@@ -3,11 +3,13 @@
 \*******************************/
 /* Std-Libs */
 #include "math.h"
+#include "stdint.h"
 
 /* Project specific */
 #include "TM4C123GH6PM.h"
 #include "ssi0_DACs.h"
 #include "dma.h"
+#include "dacWrapper.h"
 
 /*******************************\
 | Local Defines
@@ -60,6 +62,12 @@
 #define SSI0_CR0_CLR OPTION(0xFF, 8)      // Bitmask for CR0 SCR
 #define SSI0_CR0_SCR(x) OPTION(x, 8)      // SCR-factor
 
+#define SSI0_SR_TFE BIT(0)  // Tx FIFO Empty
+#define SSI0_SR_TNF BIT(1)  // Tx FIFO Not Full
+#define SSI0_SR_RNE BIT(2)  // Rx FIFO Not Empty
+#define SSI0_SR_RFF BIT(3)  // Rx FIFO Full
+#define SSI0_SR_BUSY BIT(4) // SSI0 Sending (busy-bit)
+
 #pragma endregion Local Defines
 
 /*******************************\
@@ -67,12 +75,13 @@
 \*******************************/
 void ssi0_changeClkRate(enum ssi0_clkRate clkRate);
 void ssi0_enable(cBool state);
+void ssi0_selectDACs(cBool state);
 
 /*******************************\
 | Global variables
 \*******************************/
 enum ssi0_clkRate _clkRate = ssi0_clkRate_1MHz; // Default 1 MHz
-                                                // uint8_t DACBuffer[]
+DAC_DataOut_t _DAC_DataOut = {.Size = DAC_BYTESIZE, .Filled = 0};
 
 /*******************************\
 | Function definitons
@@ -114,6 +123,13 @@ void ssi0_init(enum ssi0_clkRate clkRate)
 
   GPIOB->PCTL &= ~GPIO_PCTL_CLEAR(4); // Clear PB4 (~LDAC)
 
+  // Make output where necessary
+  GPIOA->DIR |= PA3_DACS_CS     // Make ~Chip-Select to output
+                | PA6_DACS_RST  // Make ~Reset to output
+                | PA7_DACS_CLR; // Make ~CLR to output
+
+  GPIOB->DIR |= PB4_DACS_LDAC; // Make ~LDAC to output
+
   // IO Enable
   GPIOA->DEN |= PA2_DACS_SCLK0   // Enable CLK
                 | PA3_DACS_CS    // Enable ~CS
@@ -124,6 +140,12 @@ void ssi0_init(enum ssi0_clkRate clkRate)
 
   GPIOB->DEN |= PB4_DACS_LDAC; // Enable ~LDAC
 
+  // Prepare DAC for SSI0-Init
+  ssi0_rstDACs(bTrue);     // Set DAC to reset while init ssi0
+  ssi0_clrDACs(bFalse);    // Take back output clear
+  ssi0_selectDACs(bFalse); // Deselect DACs
+  ssi0_ldacDACs(bFalse);   // No synchrone output by default
+
   // SPI0
   ssi0_enable(bOff);        // Ensure SSI0 is off
   SSI0->CR1 &= SSI0_CR_MS;  // Make SSI0 Master
@@ -131,9 +153,16 @@ void ssi0_init(enum ssi0_clkRate clkRate)
   ssi0_changeClkRate(clkRate);
   SSI0->CR0 |= SSI0_CR0_DATASIZE_8  // 8-bit data
                | SSI0_CR0_FREESCALE // No SPI format
-               | SSI0_CR0_SPH;      // Take Data on second clock edge
-  SSI0->CR0 &= ~SSI0_CR0_SPO;       // Clock Polarity low
+               //  | SSI0_CR0_SPO;      // Clock Polarity high
+               | SSI0_CR0_SPH; // Take Data on second clock edge
+  SSI0->CR0 &= ~SSI0_CR0_SPO;  // Clock Polarity low
   ssi0_enable(bOn);
+
+  // Prepare DAC for regular use
+  ssi0_rstDACs(bFalse); // Stop resetting DAC
+  // ssi0_clrDACs(bFalse);    // Already off
+  // ssi0_selectDACs(bFalse); // Already off
+  // ssi0_ldacDACs(bFalse);   // Already disabled sychronous output
 }
 
 void ssi0_setClkRate(enum ssi0_clkRate clkRate)
@@ -177,6 +206,40 @@ void ssi0_changeClkRate(enum ssi0_clkRate clkRate)
   SSI0->CR0 |= SSI0_CR0_SCR(SCR);
 }
 
+enum ssi0_sendingStatus ssi0_SendindStatus(void)
+{
+  if (SSI0->SR & SSI0_SR_BUSY)
+    return ssi0_sending_busy;
+
+  return ssi0_sending_idle;
+}
+
+enum ssi0_FIFOStatus ssi0_RxFifoStatus(void)
+{
+  uint32_t SR = SSI0->SR;
+
+  if (SR & SSI0_SR_RFF) // Check receive-FIFO Full
+    return ssi0_FIFO_Full;
+  else if (SR & SSI0_SR_RNE) // Check receive FIFO not empty
+    return ssi0_FIFO_NeitherEmptyOrFull;
+
+  // If both not fullfilled FIFO is empty
+  return ssi0_FIFO_Empty;
+}
+
+enum ssi0_FIFOStatus ssi0_TxFifoStatus(void)
+{
+  uint32_t SR = SSI0->SR;
+
+  if (SR & SSI0_SR_TFE) // Check transmit-FIFO empty
+    return ssi0_FIFO_Empty;
+  else if (SR & SSI0_SR_TNF) // Check transmit-FIFO not full
+    return ssi0_FIFO_NeitherEmptyOrFull;
+
+  // If both not fullfilled FIFO is full
+  return ssi0_FIFO_Full;
+}
+
 void ssi0_enable(cBool state)
 {
   if (state == bTrue)
@@ -193,6 +256,47 @@ void ssi0_selectDACs(cBool state)
     GPIOA->DATA |= PA3_DACS_CS;
 }
 
-void ssi0_nTransmit(char *data)
+void ssi0_ldacDACs(cBool state)
 {
+  if (state)
+    GPIOB->DATA &= ~PB4_DACS_LDAC;
+  else
+    GPIOB->DATA |= PB4_DACS_LDAC;
+}
+
+void ssi0_clrDACs(cBool state)
+{
+  if (state)
+    GPIOA->DATA &= ~PA7_DACS_CLR;
+  else
+    GPIOA->DATA |= PA7_DACS_CLR;
+}
+
+void ssi0_rstDACs(cBool state)
+{
+  if (state)
+    GPIOA->DATA &= ~PA6_DACS_RST;
+  else
+    GPIOA->DATA |= PA6_DACS_RST;
+}
+
+DAC_DataOut_t *DAC_getDataOut(void)
+{
+  return &_DAC_DataOut;
+}
+
+void ssi0_transmit(void)
+{
+  ssi0_selectDACs(bTrue); // Chip-Select
+
+  for (int i = 0; i < _DAC_DataOut.Filled; i++)
+  {
+    while (ssi0_TxFifoStatus() != ssi0_FIFO_Empty)
+      ; // Wait for space in FIFO
+    SSI0->DR = _DAC_DataOut.SerializedData[i];
+  }
+
+  while (ssi0_SendindStatus() == ssi0_sending_busy)
+    ;                      // Wait for send finished
+  ssi0_selectDACs(bFalse); // Chip-Deselect
 }
