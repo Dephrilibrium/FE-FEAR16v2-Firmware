@@ -17,19 +17,22 @@
 /*******************************\
 | Local function declarations
 \*******************************/
-void dacs_wipeDACData(void);
-void dacs_setupSequence(void);
-void dacs_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord);
-void dacs_setToAllVoltPacks(uint8_t cmdByte, uint16_t dataWord);
-void dacs_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks);
+void dac_wipeDACData(void);
+void dac_setupSequence(void);
+void dac_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord);
+void dac_setToAllVoltPacks(uint8_t cmdByte, uint16_t dataWord);
+void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks);
+
+void dac_prepareTxData(enum dac_packIndex packIndex);
+void dac_fetchRxData(enum dac_packIndex packIndex);
 
 /*******************************\
 | Global variables
 \*******************************/
 DAC_Data_t _DAC_DataOut = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
 DAC_Data_t _DAC_DataIn = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
-ssiStream_t _outputStream = {.nPacks DAC_NDACS, .nBytes = DAC_NDACS * DAC_PACK_NBYTES};
-ssiStream_t _inpStream = {.nPacks DAC_NDACS, .nBytes = DAC_NDACS * DAC_PACK_NBYTES};
+ssiStream_t _outputStream = {.nPacks = DAC_NDACS, .nBytes = DAC_BYTES_PER_SEND, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1};
+ssiStream_t _inputStream = {.nPacks = DAC_NDACS, .nBytes = 0, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1, .nSize = DAC_NDACS * DAC_PACK_NBYTES};
 uint16_t _RxNBytesReceived = 0; // Have to be global to be able to "abort" a receive
 
 /*******************************\
@@ -38,21 +41,21 @@ uint16_t _RxNBytesReceived = 0; // Have to be global to be able to "abort" a rec
 void dacs_init(void)
 {
   ssi0_init(DAC_SSI_CLKRATE);
-  dacs_wipeDACData();
-  dacs_setupSequence();
+  dac_wipeDACData();
+  dac_setupSequence();
 }
 
-void dacs_wipeDACData(void)
+void dac_wipeDACData(void)
 {
   /* Wipe structure */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  dacs_setToPacks(0, 0, _DAC_DataOut.Packs, _DAC_DataOut.nPacks);
-  dacs_setToPacks(0, 0, _DAC_DataIn.Packs, _DAC_DataIn.nPacks);
+  dac_setToPacks(0, 0, _DAC_DataOut.Packs, _DAC_DataOut.nPacks);
+  dac_setToPacks(0, 0, _DAC_DataIn.Packs, _DAC_DataIn.nPacks);
 #pragma GCC diagnostic pop
 }
 
-void dacs_setupSequence(void)
+void dac_setupSequence(void)
 {
   uint8_t cmdByte = 0;
   uint16_t dataWord = 0;
@@ -60,13 +63,8 @@ void dacs_setupSequence(void)
   // Enable SDO
   cmdByte = DAC_WRITE | DAC_REG_ADDR_SPICONFIG;
   dataWord = DAC_SPICONF_SDOEN;
-  dacs_setToAllConfPacks(cmdByte, dataWord);
-  dac_RxListenBlocking(bOff);
-  dac_transmitTxPackageBlocking(dac_pack_ctrlDAC1, _DAC_DataOut.nConfPacks);
-  dac_RxListenBlocking(bOn);
-  cmdByte &= ~DAC_WRITE;
-  dacs_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPackageBlocking(dac_pack_ctrlDAC1, _DAC_DataOut.nConfPacks);
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC1);
 
   // Select Channel range +-1V
   cmdByte = DAC_WRITE | DAC_REG_ADDR_DACRANGE0;
@@ -74,41 +72,72 @@ void dacs_setupSequence(void)
              | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)  // Ch1, Ch9  range: -10V to 10V
              | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)  // Ch2, Ch10 range: -10V to 10V
              | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10); // Ch3, Ch11 range: -10V to 10V
-  dacs_setToAllConfPacks(cmdByte, dataWord);
-  dac_RxListenBlocking(bOff);
-  dac_transmitTxPackageBlocking(dac_pack_ctrlDAC1, _DAC_DataOut.nConfPacks);
-  dac_RxListenBlocking(bOn);
-  cmdByte &= ~DAC_WRITE;
-  dacs_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPackageBlocking(dac_pack_ctrlDAC1, _DAC_DataOut.nConfPacks);
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC1);
+
+  // Select Channel range +-1V
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_NOP;
+  dataWord = DAC_NOP_DATA;
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC1);
 }
 
-void dacs_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord)
+void dac_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord)
 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  dacs_setToPacks(cmdByte, dataWord, _DAC_DataOut.ConfPack, _DAC_DataOut.nConfPacks);
+  dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.ConfPacks, _DAC_DataOut.nConfPacks);
 #pragma GCC diagnostic pop
 }
 
-void dacs_setToAllVoltPacks(uint8_t cmdByte, uint16_t dataWord)
+void dac_setToAllVoltPacks(uint8_t cmdByte, uint16_t dataWord)
 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  dacs_setToPacks(cmdByte, dataWord, _DAC_DataOut.VoltPack, _DAC_DataOut.nVoltPacks);
+  dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.VoltPacks, _DAC_DataOut.nVoltPacks);
 #pragma GCC diagnostic pop
 }
 
-void dacs_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks)
+void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks)
 {
-  uint16_t swappedWord = swap_word(dataWord);
-
-  // uint16_t swappedWord = swap_word(dataWord);
   for (uint8_t iPack = 0; iPack < nPacks; iPack++)
   {
     packCollection[iPack].CmdByte = cmdByte;
-    packCollection[iPack].Data = swappedWord;
+    packCollection[iPack].Data = dataWord;
   }
+}
+
+void dac_prepareTxData(enum dac_packIndex packIndex)
+{
+  // Prepare Tx
+  _outputStream.targetPack = packIndex;
+  for (uint8_t iPack = 0; iPack < _outputStream.nPacks; iPack++)
+  {
+    _outputStream.Packs[iPack].CmdByte = _DAC_DataOut.Packs[_outputStream.targetPack + iPack].CmdByte;
+    _outputStream.Packs[iPack].Data = swap_word(_DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data);
+  }
+}
+
+void dac_fetchRxData(enum dac_packIndex packIndex)
+{
+  // Get and convert Rx when not the first input!
+  if (_inputStream.targetPack >= 0)
+  {
+    // Receive into input-Buffer
+    // HINT! Debugger reads out SSI0->DR (removes values from FIFO!)
+    while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
+      ssi0_receive(_inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
+    _inputStream.nBytes = 0; // Clear received bytes for next round
+
+    // Reconvert into datastructure
+    for (uint8_t iPack = 0; iPack < _inputStream.nPacks; iPack++)
+    {
+      _DAC_DataIn.Packs[_inputStream.targetPack + iPack].CmdByte = _inputStream.Packs[iPack].CmdByte;
+      _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = swap_word(_inputStream.Packs[iPack].Data);
+    }
+  }
+
+  _inputStream.targetPack = packIndex;
 }
 
 DAC_Data_t *dac_grabRxDataStruct(void)
@@ -136,70 +165,86 @@ void dac_chipselectBlocking(cBool csState)
     ; // Wait until chip-select was done correctly
 }
 
-cBool dac_RxListen(cBool listenState)
+void dac_queryPack(enum dac_packIndex packIndex)
 {
-  if (ssi0_SendindStatus() == ssi0_sending_busy)
-    return bFalse; // Busy, nothin happened!
+  // Prepare send-data
+  dac_prepareTxData(packIndex);
 
-  ssi0_RxOnOff(listenState);
-  return bTrue;
+  // Send current; receive previous
+  dac_chipselectBlocking(bTrue);
+  ssi0_transmit(_outputStream.SerializedStream, _outputStream.nBytes);
+  while (ssi0_SendindStatus() == ssi0_sending_busy)
+    ; // Wait for fully transmitted
+  dac_chipselectBlocking(bFalse);
+
+  // Get received-data and set the next package index
+  dac_fetchRxData(packIndex);
 }
 
-void dac_RxListenBlocking(cBool listenState)
-{
-  while (dac_RxListen(listenState) == bFalse)
-    ; // Wait until RxListen was done correctly
-}
+// cBool dac_RxListen(cBool listenState)
+// {
+//   if (ssi0_SendindStatus() == ssi0_sending_busy)
+//     return bFalse; // Busy, nothin happened!
 
-void dac_abortRxPackage(void)
-{
-  _RxNBytesReceived = 0;
-}
+//   ssi0_RxOnOff(listenState);
+//   return bTrue;
+// }
 
-uint8_t dac_receiveRxPackage(enum dac_packIndex iPack, uint8_t nPacksExpected)
-{
-  uint16_t nBytesExpected = nPacksExpected * DAC_PACK_NBYTES;
-  uint16_t tmpRcvdBytes = 0;
+// void dac_RxListenBlocking(cBool listenState)
+// {
+//   while (dac_RxListen(listenState) == bFalse)
+//     ; // Wait until RxListen was done correctly
+// }
 
-  ssi0_receive((uint8_t *)&_DAC_DataIn.Packs[iPack], &tmpRcvdBytes, nBytesExpected);
-  _RxNBytesReceived += tmpRcvdBytes; // Sum up both numbers
-  tmpRcvdBytes = _RxNBytesReceived;  //  and copy back to reuse the
+// void dac_abortRxPackage(void)
+// {
+//   _RxNBytesReceived = 0;
+// }
 
-  if (_RxNBytesReceived >= nBytesExpected) // Check if pack received completely
-    _RxNBytesReceived = 0;                 //  and reset the static counter
+// uint8_t dac_receiveRxPackage(enum dac_packIndex iPack, uint8_t nPacksExpected)
+// {
+//   uint16_t nBytesExpected = nPacksExpected * DAC_PACK_NBYTES;
+//   uint16_t tmpRcvdBytes = 0;
 
-  return tmpRcvdBytes / DAC_PACK_NBYTES; // Return numnber of complete packs received
-}
+//   ssi0_receive((uint8_t *)&_DAC_DataIn.Packs[iPack], &tmpRcvdBytes, nBytesExpected);
+//   _RxNBytesReceived += tmpRcvdBytes; // Sum up both numbers
+//   tmpRcvdBytes = _RxNBytesReceived;  //  and copy back to reuse the
 
-void dac_receiveRxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksAwait)
-{
-  while (dac_receiveRxPackage(iPack, nPacksAwait) < nPacksAwait)
-    ; // wait until all packBytes received!
-}
+//   if (_RxNBytesReceived >= nBytesExpected) // Check if pack received completely
+//     _RxNBytesReceived = 0;                 //  and reset the static counter
 
-void dac_transmitTxPackage(enum dac_packIndex iPack, uint8_t nPacksSend)
-{
-  uint16_t nBytesSend = nPacksSend * DAC_PACK_NBYTES;
-  ssi0_transmit((uint8_t *)&_DAC_DataOut.Packs[iPack], nBytesSend);
-}
+//   return tmpRcvdBytes / DAC_PACK_NBYTES; // Return numnber of complete packs received
+// }
 
-void dac_transmitTxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksSend)
-{
-  dac_chipselectBlocking(bOn);
-  dac_transmitTxPackage(iPack, nPacksSend);
-  dac_chipselectBlocking(bOff);
-}
+// void dac_receiveRxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksAwait)
+// {
+//   while (dac_receiveRxPackage(iPack, nPacksAwait) < nPacksAwait)
+//     ; // wait until all packBytes received!
+// }
 
-void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks)
-{
-  dac_RxListenBlocking(bFalse);
-  dac_transmitTxPackageBlocking(iPack, nPacks);
-  dac_RxListenBlocking(bTrue);
+// void dac_transmitTxPackage(enum dac_packIndex iPack, uint8_t nPacksSend)
+// {
+//   uint16_t nBytesSend = nPacksSend * DAC_PACK_NBYTES;
+//   ssi0_transmit((uint8_t *)&_DAC_DataOut.Packs[iPack], nBytesSend);
+// }
 
-  // Use a dummy to receive the response of the previous command
-  dacs_setToAllConfPacks(DAC_WRITE | DAC_REG_ADDR_NOP, DAC_NOP_DATA);
-  dac_chipselectBlocking(bOn);
-  dac_transmitTxPackage(dac_pack_ctrlDAC1, nPacks);
-  dac_chipselectBlocking(bOff);
-  dac_receiveRxPackageBlocking(iPack, nPacks);
-}
+// void dac_transmitTxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksSend)
+// {
+//   dac_chipselectBlocking(bOn);
+//   dac_transmitTxPackage(iPack, nPacksSend);
+//   dac_chipselectBlocking(bOff);
+// }
+
+// void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks)
+// {
+//   dac_RxListenBlocking(bFalse);
+//   dac_transmitTxPackageBlocking(iPack, nPacks);
+//   dac_RxListenBlocking(bTrue);
+
+//   // Use a dummy to receive the response of the previous command
+//   dacs_setToAllConfPacks(DAC_WRITE | DAC_REG_ADDR_NOP, DAC_NOP_DATA);
+//   dac_chipselectBlocking(bOn);
+//   dac_transmitTxPackage(dac_pack_ctrlDAC1, nPacks);
+//   dac_chipselectBlocking(bOff);
+//   dac_receiveRxPackageBlocking(iPack, nPacks);
+// }

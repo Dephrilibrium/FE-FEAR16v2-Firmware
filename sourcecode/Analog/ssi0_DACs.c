@@ -347,15 +347,14 @@ void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxByte
 {
   /* Data comes in reverse order -> Reverse copy into stream */
 
-  uint16_t iCpyByte = nMaxBytes - 1; // Build last offset-index
-  while (nMaxBytes > 0)
+  uint16_t iCpyByte = 0; // Build last offset-index
+  while (iCpyByte < nMaxBytes)
   {
     if (ssi0_RxFifoStatus() == ssi0_FIFO_Empty)
       break;
 
     serializedStream[iCpyByte] = SSI0->DR;
-    iCpyByte--;
-    nMaxBytes--;
+    iCpyByte++;
   }
 
   // Set amount of copied bytes
