@@ -9,7 +9,6 @@
 #include "TM4C123GH6PM.h"
 #include "ssi0_DACs.h"
 #include "dma.h"
-#include "dacWrapper.h"
 
 /*******************************\
 | Local Defines
@@ -71,17 +70,39 @@
 #pragma endregion Local Defines
 
 /*******************************\
+| Local Enum/Struct/Union
+\*******************************/
+struct ssi0_serializedDACData
+{
+  uint8_t Size;
+  uint8_t Filled;
+
+  union
+  {
+    uint8_t SerializedData[SSI0_BUFFERSIZE];
+    struct __attribute__((packed))
+    { // Due to sending cmd byte is the first data shifted out, which ends at the last DAC!
+      uint8_t CmdByte1;
+      uint16_t DataWord1;
+      uint8_t CmdByte0;
+      uint16_t DataWord0;
+    };
+  };
+};
+typedef struct ssi0_serializedDACData ssi0_dacData_t;
+
+/*******************************\
 | Local function declarations
 \*******************************/
 void ssi0_changeClkRate(enum ssi0_clkRate clkRate);
 void ssi0_enable(cBool state);
-void ssi0_selectDACs(cBool state);
 
 /*******************************\
 | Global variables
 \*******************************/
 enum ssi0_clkRate _clkRate = ssi0_clkRate_1MHz; // Default 1 MHz
-DAC_DataOut_t _DAC_DataOut = {.Size = DAC_BYTESIZE, .Filled = 0};
+ssi0_dacData_t _serializedOutput = {.Size = SSI0_BUFFERSIZE, .Filled = 0};
+ssi0_dacData_t _serializedInput = {.Size = SSI0_BUFFERSIZE, .Filled = 0};
 
 /*******************************\
 | Function definitons
@@ -131,12 +152,14 @@ void ssi0_init(enum ssi0_clkRate clkRate)
   GPIOB->DIR |= PB4_DACS_LDAC; // Make ~LDAC to output
 
   // IO Enable
-  GPIOA->DEN |= PA2_DACS_SCLK0   // Enable CLK
-                | PA3_DACS_CS    // Enable ~CS
-                | PA4_DACS_MISO0 // Enable MISO
-                | PA5_DACS_MOSI0 // Enable MOSI
-                | PA6_DACS_RST   // Enable ~RST
-                | PA7_DACS_CLR;  // Enable ~CLR
+  GPIOA->DEN |= PA2_DACS_SCLK0 // Enable CLK
+                | PA3_DACS_CS  // Enable ~CS
+                // | PA4_DACS_MISO0 // Enable MISO
+                // | PA5_DACS_MOSI0 // Enable MOSI
+                | PA6_DACS_RST  // Enable ~RST
+                | PA7_DACS_CLR; // Enable ~CLR
+  ssi0_RxOnOff(bOn);            // Using the preparated DEN-functions for the MISO-Pins
+  ssi0_TxOnOff(bOn);            // Using the preparated DEN-functions for the MOSI-Pins
 
   GPIOB->DEN |= PB4_DACS_LDAC; // Enable ~LDAC
 
@@ -280,23 +303,49 @@ void ssi0_rstDACs(cBool state)
     GPIOA->DATA |= PA6_DACS_RST;
 }
 
-DAC_DataOut_t *DAC_getDataOut(void)
+void ssi0_RxOnOff(cBool ioOnOff)
 {
-  return &_DAC_DataOut;
+  if (ioOnOff)
+    GPIOA->DEN |= PA4_DACS_MISO0;
+  else
+    GPIOA->DEN &= ~PA4_DACS_MISO0;
 }
 
-void ssi0_transmit(void)
+void ssi0_TxOnOff(cBool ioOnOff)
 {
-  ssi0_selectDACs(bTrue); // Chip-Select
+  if (ioOnOff)
+    GPIOA->DEN |= PA5_DACS_MOSI0;
+  else
+    GPIOA->DEN &= ~PA5_DACS_MOSI0;
+}
 
-  for (int i = 0; i < _DAC_DataOut.Filled; i++)
+void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
+{
+  // Has to be managed by the user!
+  // ssi0_selectDACs(bTrue); // Chip-Select
+
+  for (uint16_t iByte = 0; iByte < bytes_n; iByte++)
   {
-    while (ssi0_TxFifoStatus() != ssi0_FIFO_Empty)
-      ; // Wait for space in FIFO
-    SSI0->DR = _DAC_DataOut.SerializedData[i];
+    while (ssi0_TxFifoStatus() == ssi0_FIFO_Full)
+      ; // Wait when FIFO is full!
+
+    SSI0->DR = serializedStream[iByte];
   }
 
-  while (ssi0_SendindStatus() == ssi0_sending_busy)
-    ;                      // Wait for send finished
-  ssi0_selectDACs(bFalse); // Chip-Deselect
+  // while (ssi0_SendindStatus() == ssi0_sending_busy)
+  //   ;                      // Wait for send finished
+  // ssi0_selectDACs(bFalse); // Chip-Deselect
+}
+
+void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes)
+{
+  uint16_t iByte = 0;
+  for (; iByte < nMaxBytes; iByte++)
+  {
+    if (ssi0_RxFifoStatus() == ssi0_FIFO_Empty)
+      break;
+
+    serializedStream[iByte] = SSI0->DR;
+  }
+  *nBytes = iByte; // Set amount of copied bytes
 }

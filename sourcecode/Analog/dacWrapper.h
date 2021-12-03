@@ -7,20 +7,25 @@
 
 /* Project specific */
 #include "common.h"
+#include "ssi0_DACs.h"
 
 /*******************************\
 | Defines
 \*******************************/
-// Data and packages
-//#define DACS_IN_DAISY_CHAIN 2 // Amount of daisy-chained DACs
-#define DACS_BYTES_PER_DAC 3 // 1 Control-Byte, 2 Data-Bytes
-#ifdef DACS_IN_DAISY_CHAIN
-#define DAC_BYTESIZE (DACS_IN_DAISY_CHAIN * (DAC_CTRL_BYTE + DAC_DATA_WORDS * 2)) // Each Channel has 2 DataBytes
-#else
-#define DAC_BYTESIZE DACS_BYTES_PER_DAC // Each Channel has 2 DataBytes
-#endif
+// DAC Datastructure
+#define DAC_NDACS 2       // Amount of DACs in daisy-chain
+#define DAC_CONFPACKS 1   // Amoutn of config-packs
+#define DAC_VOLTPACKS 8   // Amount of outputvoltage-packs
+#define DAC_PACK_NBYTES 3 // Bytes per data-pack
+
+#define DAC_NALLCONFPACKS (DAC_NDACS * DAC_CONFPACKS)
+#define DAC_NALLVOLTPACKS (DAC_NDACS * DAC_VOLTPACKS)
+#define DAC_NALLPACKS (DAC_NALLCONFPACKS + DAC_NALLVOLTPACKS) // Amount of all packs
+#define DAC_ALLPACKS_NBYTES (DAC_NALLPACKS * DAC_PACK_NBYTES) // Amount of bytes for all data-packs. Be carefull when updating code for more than 2 daisychain-DACs. Struct not using this calculation to modify the entire struct!
 
 // DAC
+#define DAC_SSI_CLKRATE ssi0_clkRate_1MHz
+
 #define DAC_READ BIT(7) // Do nothing when reading from DAC
 #define DAC_WRITE 0x00  // Set when writing to DAC-Registers
 #pragma region DAC Register Addresses
@@ -70,11 +75,127 @@
 #define DAC_SPICONF_DACBUSYEN BIT(10) // DAC-Busy enable
 #define DAC_SPICONF_TEMPALMEN BIT(11) // DAC Temperature-Alarm enable
 
+#define DAC_GENCONFIG_DAC_0_1_DIFF_EN BIT(2) // Enable output 0 & 1 as differential pair
+#define DAC_GENCONFIG_DAC_2_3_DIFF_EN BIT(3) // Enable output 2 & 3 as differential pair
+#define DAC_GENCONFIG_DAC_4_5_DIFF_EN BIT(4) // Enable output 4 & 5 as differential pair
+#define DAC_GENCONFIG_DAC_6_7_DIFF_EN BIT(5) // Enable output 6 & 7 as differential pair
+#define DAC_GENCONFIG_REF_PWDWN BIT(14)      // '1' = Disable internal reference
+
+#define DAC_BRDCONFIG_DAC0_BRD_EN BIT(4)  // Enable DAC-Ch0 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC1_BRD_EN BIT(5)  // Enable DAC-Ch1 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC2_BRD_EN BIT(6)  // Enable DAC-Ch2 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC3_BRD_EN BIT(7)  // Enable DAC-Ch3 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC4_BRD_EN BIT(8)  // Enable DAC-Ch4 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC5_BRD_EN BIT(9)  // Enable DAC-Ch5 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC6_BRD_EN BIT(10) // Enable DAC-Ch6 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC7_BRD_EN BIT(11) // Enable DAC-Ch7 to be broadcastet by writing a value to BRDCAST
+
+#define DAC_SYNCCONFIG_DAC0_SYNC_EN BIT(4)  // '1' = Enable DAC-Ch0 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC1_SYNC_EN BIT(5)  // '1' = Enable DAC-Ch1 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC2_SYNC_EN BIT(6)  // '1' = Enable DAC-Ch2 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC3_SYNC_EN BIT(7)  // '1' = Enable DAC-Ch3 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC4_SYNC_EN BIT(8)  // '1' = Enable DAC-Ch4 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC5_SYNC_EN BIT(9)  // '1' = Enable DAC-Ch5 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC6_SYNC_EN BIT(10) // '1' = Enable DAC-Ch6 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC7_SYNC_EN BIT(11) // '1' = Enable DAC-Ch7 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+
+#define DAC_TOGGCONFIG_TOGGLEMODE_DISABLED 0x00          // Toggle disabled
+#define DAC_TOGGCONFIG_TOGGLEMODE_TOGGLE0 0x01           // Toggle assigned to Toggle0 bit
+#define DAC_TOGGCONFIG_TOGGLEMODE_TOGGLE1 0x02           // Toggle assigned to Toggle1 bit
+#define DAC_TOGGCONFIG_TOGGLEMODE_TOGGLE2 0x03           // Toggle assigned to Toggle2 bit
+#define DAC_TOGGCONFIG1_DAC0_TOGGLEMODE(x) OPTION(x, 8)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG1_DAC1_TOGGLEMODE(x) OPTION(x, 10) // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG1_DAC2_TOGGLEMODE(x) OPTION(x, 12) // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG1_DAC3_TOGGLEMODE(x) OPTION(x, 14) // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC4_TOGGLEMODE(x) OPTION(x, 0)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC5_TOGGLEMODE(x) OPTION(x, 2)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC6_TOGGLEMODE(x) OPTION(x, 4)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC7_TOGGLEMODE(x) OPTION(x, 6)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+
+#define DAC_DACPWDWN_DAC0 BIT(4)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC1 BIT(5)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC2 BIT(6)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC3 BIT(7)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC4 BIT(8)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC5 BIT(9)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC6 BIT(10) // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC7 BIT(11) // '1' = Enable / '0' = Disable corresponding DAC-output
+
+#define DAC_DACRANGE_0to5 0b0000            // Range: 0V to 5V
+#define DAC_DACRANGE_0to10 0b0001           // Range: 0V to 10V
+#define DAC_DACRANGE_0to20 0b0010           // Range: 0V to 20V
+#define DAC_DACRANGE_0to40 0b0100           // Range: 0V to 40V
+#define DAC_DACRANGE_5to5 0b1001            // Range: -5V to 5V
+#define DAC_DACRANGE_10to10 0b1010          // Range: -10V to 10V
+#define DAC_DACRANGE_20to20 0b1100          // Range: -20V to 20V
+#define DAC_DACRANGE_2p5to2p5 0b1110        // Range: -2.5V to 2.5V
+#define DAC_DACRANGE1_DAC0(x) OPTION(x, 0)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE1_DAC1(x) OPTION(x, 4)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE1_DAC2(x) OPTION(x, 8)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE1_DAC3(x) OPTION(x, 12) // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE0_DAC4(x) OPTION(x, 0)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE0_DAC5(x) OPTION(x, 4)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE0_DAC6(x) OPTION(x, 8)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE0_DAC7(x) OPTION(x, 12) // Set the DAC-Range for the corresponding DAC-Ch
+
+#define DAC_TRIGGER_SOFTRST OPTION(0b1010, 0) // When written into TRIGGER the device resets to default state
+#define DAC_TRIGGER_LDAC BIT(4)               // '1' = Channels configurated in SYNCCONFIG are updated sychronously
+#define DAC_TRIGGER_TOG0 BIT(5)               // '1' = Toggles the corresponding Channels configurated in TOGGCONF
+#define DAC_TRIGGER_TOG1 BIT(6)               // '1' = Toggles the corresponding Channels configurated in TOGGCONF
+#define DAC_TRIGGER_TOG2 BIT(7)               // '1' = Toggles the corresponding Channels configurated in TOGGCONF
+#define DAC_TRIGGER_ALMRST BIT(8)             // '1' = Resets the event-alarm output
+
 #pragma endregion DAC Register Bits
 
 /*******************************\
 | Enum/Struct/Union
 \*******************************/
+enum dac_packIndex
+{
+  // Indicies for "ConfPacks"
+  dac_confPack_DAC1 = 0,
+  dac_confPack_DAC0,
+
+  // Indicies for "VoltPacks"
+  dac_voltPack_CH8 = 0,
+  dac_voltPack_CH0,
+  dac_voltPack_CH9,
+  dac_voltPack_CH1,
+  dac_voltPack_CH10,
+  dac_voltPack_CH2,
+  dac_voltPack_CH11,
+  dac_voltPack_CH3,
+  dac_voltPack_CH12,
+  dac_voltPack_CH4,
+  dac_voltPack_CH13,
+  dac_voltPack_CH5,
+  dac_voltPack_CH14,
+  dac_voltPack_CH6,
+  dac_voltPack_CH15,
+  dac_voltPack_CH7,
+
+  // Indicies for "Packs"
+  dac_pack_CH8 = 0, // Ch8 is DAC1-Ch0 of the last Daisy-Chain-DAC
+  dac_pack_CH0,     // DAC0 is grabbin the last sent out package
+  dac_pack_CH9,
+  dac_pack_CH1,
+  dac_pack_CH10,
+  dac_pack_CH2,
+  dac_pack_CH11,
+  dac_pack_CH3,
+  dac_pack_CH12,
+  dac_pack_CH4,
+  dac_pack_CH13,
+  dac_pack_CH5,
+  dac_pack_CH14,
+  dac_pack_CH6,
+  dac_pack_CH15,
+  dac_pack_CH7,
+  dac_pack_ctrlDAC1,
+  dac_pack_ctrlDAC0,
+
+};
+
 /* Structure of Cmd-Byte
 * Bit[23]: RW - RW = 0 sets a write operation; RW = 1 sets a read operation
 * Bit[22]: Don't care
@@ -82,47 +203,67 @@
 * Bit[15:0]: Data-Bits
 * Every other following 16 Bits: Additional Data-Bits for N+1, N+2, ...
 */
-
-struct DAC_Out
+struct DAC_StructuralDataPack
 {
-  uint16_t Size;
-  uint16_t Filled;
+  // uint16_t Size;
+  // uint16_t Filled;
+  // union __attribute__((packed))
+  // {
+  //   uint8_t SerializedData[DAC_PACK_NBYTES];
+  //   struct __attribute__((packed))
+  //   {
+  uint8_t CmdByte;
+  uint16_t Data;
+  // };
+  // };
+} __attribute__((packed));
+typedef struct DAC_StructuralDataPack DAC_StructuralDataPack_t;
+
+struct DAC_Data
+{
+  uint8_t nVoltPacks;
+  uint8_t nConfPacks;
+  uint8_t nPacks;
+
   union
   {
-    uint8_t SerializedData[DAC_BYTESIZE];
-    struct __attribute__((packed)) // Pack to avoid padding between uint8_t and uint16_t
+    uint8_t SerializedPacks[DAC_ALLPACKS_NBYTES];
+    struct __attribute__((packed))
     {
-#ifdef DACS_IN_DAISY_CHAIN
-      // Add the second datastructure
-      uint8_t CmdByte1;
-      uint16_t ChannelData1;
-#endif
-      uint8_t CmdByte0;
-      uint16_t ChannelData0;
+      DAC_StructuralDataPack_t VoltPack[DAC_NALLVOLTPACKS];
+      DAC_StructuralDataPack_t ConfPack[DAC_NALLCONFPACKS];
+    };
+    struct __attribute__((packed))
+    {
+      DAC_StructuralDataPack_t Packs[DAC_NALLPACKS];
     };
   };
 };
-typedef struct DAC_Out DAC_DataOut_t;
-
-// struct DAC_In
-// {
-//   uint16_t Size;
-//   uint16_t Filled;
-//   union
-//   {
-//     uint8_t *SerializedData;
-//     struct
-//     {
-//       uint8_t StreamWriteCmd;
-//       uint16_t Data[];
-//     };
-//   };
-// };
+typedef struct DAC_Data DAC_Data_t;
 
 /*******************************\
 | Function declaration
 \*******************************/
 void dacs_init(void);
-void dac_prepareTxPackage(uint8_t ctrlByte, uint16_t data);
+
+cBool dac_chipselect(cBool csState);        // Nonblocking chipselect
+void dac_chipselectBlocking(cBool csState); // Blocking core until chipselect can be done
+
+cBool dac_RxListen(cBool listenState);        // Dis- or enables Rx-Pin (non-blocking)
+void dac_RxListenBlocking(cBool listenState); // Dis- or enables Rx-Pin (blocking)
+
+// Rx-Functions
+DAC_Data_t *dac_grabRxDataStruct(void);                                           // Return the Rx-Datastructure
+void dac_abortRxPackage(void);                                                    // Cancel current receive-querry (only for non-blocking!)
+uint8_t dac_receiveRxPackage(enum dac_packIndex iPack, uint8_t nPacksExpected);   // Nonblocking Rx-receive
+void dac_receiveRxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksAwait); // Blocking Rx-receive
+
+// Tx-Functions
+DAC_Data_t *dac_grabTxDataStruct(void);                                           // Return the Tx-Datastructure
+void dac_transmitTxPackage(enum dac_packIndex iPack, uint8_t nPacksSend);         // Nonblocking Tx-transmit
+void dac_transmitTxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksSend); // Blocking Tx-Transmit until it's finished
+
+// Query-Functions
+void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks); // Sends a pack and query the response (changes confPack to NOP-Write)
 
 #endif

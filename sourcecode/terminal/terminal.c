@@ -44,6 +44,7 @@ terminalCmd_t _command = {TERMINAL_CMD_AMOUNT, TERMINAL_CMD_BUFFSIZE, 0};
 #pragma region Terminal init / configs
 void terminal_init(void)
 {
+    uart1_init(TERMINAL_BAUD);
     terminal_wipeBuffers(); // Wipe buffers
 }
 #pragma endregion Terminal init / configs

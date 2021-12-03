@@ -27,8 +27,11 @@ enum cBoolean
 {
   bFalse = 0,
   bOff = 0,
+  bNo = 0,
+
   bTrue = 1,
   bOn = 1,
+  bYes = 1,
 };
 typedef enum cBoolean cBool;
 

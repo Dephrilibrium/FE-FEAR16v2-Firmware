@@ -13,6 +13,7 @@
 /*******************************\
 | Defines
 \*******************************/
+#define TERMINAL_BAUD 921600
 #define TERMINAL_CMD_AMOUNT 16
 #define TERMINAL_CMD_BUFFSIZE 32
 #define TERMINAL_INPUTLINE_BUFFSIZE ((TERMINAL_CMD_AMOUNT + 1) * TERMINAL_CMD_AMOUNT) // +1 added for a little bit extra space like spaces
