@@ -241,6 +241,12 @@ enum ssi0_FIFOStatus ssi0_RxFifoStatus(void)
 {
   uint32_t SR = SSI0->SR;
 
+  /* KEEP IN MIND!
+   * When Debugging the Debugger reads out the SSI0-DR Register!
+   * Therefore sometimes it can be that the RxFIFO Empty bit can
+   *  disappear for "no reason"!
+  */
+
   if (SR & SSI0_SR_RFF) // Check receive-FIFO Full
     return ssi0_FIFO_Full;
   else if (SR & SSI0_SR_RNE) // Check receive FIFO not empty
@@ -339,13 +345,19 @@ void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
 
 void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes)
 {
-  uint16_t iByte = 0;
-  for (; iByte < nMaxBytes; iByte++)
+  /* Data comes in reverse order -> Reverse copy into stream */
+
+  uint16_t iCpyByte = nMaxBytes - 1; // Build last offset-index
+  while (nMaxBytes > 0)
   {
     if (ssi0_RxFifoStatus() == ssi0_FIFO_Empty)
       break;
 
-    serializedStream[iByte] = SSI0->DR;
+    serializedStream[iCpyByte] = SSI0->DR;
+    iCpyByte--;
+    nMaxBytes--;
   }
-  *nBytes = iByte; // Set amount of copied bytes
+
+  // Set amount of copied bytes
+  *nBytes = iCpyByte; // iCpyByte was previously decremented by 1
 }

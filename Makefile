@@ -146,7 +146,9 @@ CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Wno-unknown-pragmas -Wno-u
 
 ifeq ($(DEBUG), 1)
 # CFLAGS += -g -gdwarf-2
-CFLAGS += -ggdb3
+#CFLAGS += -ggdb3
+# Testing new Debug-Flags because often breakpoints can't be removed (the disappear, but the µC stops at there positions anyway!)
+CFLAGS+=-g -D DEBUG
 endif
 
 

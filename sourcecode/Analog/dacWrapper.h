@@ -153,46 +153,28 @@
 enum dac_packIndex
 {
   // Indicies for "ConfPacks"
-  dac_confPack_DAC1 = 0,
-  dac_confPack_DAC0,
+  dac_confPack_DAC1_0 = 0, // Pack-Offset for confPack-Array: DAC1 & DAC0
 
   // Indicies for "VoltPacks"
-  dac_voltPack_CH8 = 0,
-  dac_voltPack_CH0,
-  dac_voltPack_CH9,
-  dac_voltPack_CH1,
-  dac_voltPack_CH10,
-  dac_voltPack_CH2,
-  dac_voltPack_CH11,
-  dac_voltPack_CH3,
-  dac_voltPack_CH12,
-  dac_voltPack_CH4,
-  dac_voltPack_CH13,
-  dac_voltPack_CH5,
-  dac_voltPack_CH14,
-  dac_voltPack_CH6,
-  dac_voltPack_CH15,
-  dac_voltPack_CH7,
+  dac_voltPack_CH8_0 = 0,   // Pack-Offset for voltPack-Array: Ch 8 & Ch0
+  dac_voltPack_CH9_1 = 2,   // Pack-Offset for voltPack-Array: Ch 9 & Ch1
+  dac_voltPack_CH10_2 = 4,  // Pack-Offset for voltPack-Array: Ch10 & Ch2
+  dac_voltPack_CH11_3 = 6,  // Pack-Offset for voltPack-Array: Ch11 & Ch3
+  dac_voltPack_CH12_4 = 8,  // Pack-Offset for voltPack-Array: Ch12 & Ch4
+  dac_voltPack_CH13_5 = 10, // Pack-Offset for voltPack-Array: Ch13 & Ch5
+  dac_voltPack_CH14_6 = 12, // Pack-Offset for voltPack-Array: Ch14 & Ch6
+  dac_voltPack_CH15_7 = 14, // Pack-Offset for voltPack-Array: Ch15 & Ch7
 
   // Indicies for "Packs"
-  dac_pack_CH8 = 0, // Ch8 is DAC1-Ch0 of the last Daisy-Chain-DAC
-  dac_pack_CH0,     // DAC0 is grabbin the last sent out package
-  dac_pack_CH9,
-  dac_pack_CH1,
-  dac_pack_CH10,
-  dac_pack_CH2,
-  dac_pack_CH11,
-  dac_pack_CH3,
-  dac_pack_CH12,
-  dac_pack_CH4,
-  dac_pack_CH13,
-  dac_pack_CH5,
-  dac_pack_CH14,
-  dac_pack_CH6,
-  dac_pack_CH15,
-  dac_pack_CH7,
-  dac_pack_ctrlDAC1,
-  dac_pack_ctrlDAC0,
+  dac_pack_CH8_0 = 0,       // Pack-Offset for (All-)Pack-ArrayCh 8 & Ch0
+  dac_pack_CH9_1 = 2,       // Pack-Offset for (All-)Pack-ArrayCh 9 & Ch1
+  dac_pack_CH10_2 = 4,      // Pack-Offset for (All-)Pack-ArrayCh10 & Ch2
+  dac_pack_CH11_3 = 6,      // Pack-Offset for (All-)Pack-ArrayCh11 & Ch3
+  dac_pack_CH12_4 = 8,      // Pack-Offset for (All-)Pack-ArrayCh12 & Ch4
+  dac_pack_CH13_5 = 10,     // Pack-Offset for (All-)Pack-ArrayCh13 & Ch5
+  dac_pack_CH14_6 = 12,     // Pack-Offset for (All-)Pack-ArrayCh14 & Ch6
+  dac_pack_CH15_7 = 14,     // Pack-Offset for (All-)Pack-ArrayCh15 & Ch7
+  dac_pack_ctrlDAC1_0 = 16, // Pack-Offset for (All-)Pack-ArrayDAC1 & DAC0
 
 };
 
@@ -203,21 +185,16 @@ enum dac_packIndex
 * Bit[15:0]: Data-Bits
 * Every other following 16 Bits: Additional Data-Bits for N+1, N+2, ...
 */
-struct DAC_StructuralDataPack
+union DAC_StructuralDataPack
 {
-  // uint16_t Size;
-  // uint16_t Filled;
-  // union __attribute__((packed))
-  // {
-  //   uint8_t SerializedData[DAC_PACK_NBYTES];
-  //   struct __attribute__((packed))
-  //   {
-  uint8_t CmdByte;
-  uint16_t Data;
-  // };
-  // };
-} __attribute__((packed));
-typedef struct DAC_StructuralDataPack DAC_StructuralDataPack_t;
+  uint8_t serialized[DAC_PACK_NBYTES];
+  struct
+  {
+    uint8_t CmdByte;
+    uint16_t Data;
+  } __attribute__((packed));
+};
+typedef union DAC_StructuralDataPack DAC_StructuralDataPack_t;
 
 struct DAC_Data
 {
@@ -227,19 +204,35 @@ struct DAC_Data
 
   union
   {
-    uint8_t SerializedPacks[DAC_ALLPACKS_NBYTES];
-    struct __attribute__((packed))
+    struct
     {
       DAC_StructuralDataPack_t VoltPack[DAC_NALLVOLTPACKS];
       DAC_StructuralDataPack_t ConfPack[DAC_NALLCONFPACKS];
-    };
-    struct __attribute__((packed))
+    } __attribute__((packed));
+
+    struct
     {
-      DAC_StructuralDataPack_t Packs[DAC_NALLPACKS];
-    };
-  };
+      DAC_StructuralDataPack_t Pack[DAC_NALLPACKS];
+    } __attribute__((packed));
+  } __attribute__((packed));
 };
 typedef struct DAC_Data DAC_Data_t;
+
+struct ssiStream
+{
+  uint16_t nBytes;
+  uint16_t nPacks;
+
+  union
+  {
+    uint8_t serializedStream[DAC_NDACS * DAC_PACK_NBYTES];
+    struct
+    {
+      DAC_StructuralDataPack_t pack[DAC_NDACS];
+    } __attribute__((packed));
+  } __attribute__((packed));
+};
+typedef struct ssiStream ssiStream_t;
 
 /*******************************\
 | Function declaration
@@ -249,21 +242,24 @@ void dacs_init(void);
 cBool dac_chipselect(cBool csState);        // Nonblocking chipselect
 void dac_chipselectBlocking(cBool csState); // Blocking core until chipselect can be done
 
-cBool dac_RxListen(cBool listenState);        // Dis- or enables Rx-Pin (non-blocking)
-void dac_RxListenBlocking(cBool listenState); // Dis- or enables Rx-Pin (blocking)
+// Tx & Rx
+// cBool dac_RxListen(cBool listenState);                                            // Dis- or enables Rx-Pin (non-blocking)
+// void dac_RxListenBlocking(cBool listenState);                                     // Dis- or enables Rx-Pin (blocking)
 
-// Rx-Functions
-DAC_Data_t *dac_grabRxDataStruct(void);                                           // Return the Rx-Datastructure
-void dac_abortRxPackage(void);                                                    // Cancel current receive-querry (only for non-blocking!)
-uint8_t dac_receiveRxPackage(enum dac_packIndex iPack, uint8_t nPacksExpected);   // Nonblocking Rx-receive
-void dac_receiveRxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksAwait); // Blocking Rx-receive
+DAC_Data_t *dac_grabRxDataStruct(void); // Return the Rx-Datastructure
+DAC_Data_t *dac_grabTxDataStruct(void); // Return the Tx-Datastructure
 
-// Tx-Functions
-DAC_Data_t *dac_grabTxDataStruct(void);                                           // Return the Tx-Datastructure
-void dac_transmitTxPackage(enum dac_packIndex iPack, uint8_t nPacksSend);         // Nonblocking Tx-transmit
-void dac_transmitTxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksSend); // Blocking Tx-Transmit until it's finished
+uint8_t dac_sendReceivePacks(enum, dac)
 
-// Query-Functions
-void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks); // Sends a pack and query the response (changes confPack to NOP-Write)
+    // // void dac_abortRxPackage(void);                                                    // Cancel current receive-querry (only for non-blocking!)
+    // uint8_t dac_receiveRxPackage(enum dac_packIndex iPack, uint8_t nPacksExpected);   // Nonblocking Rx-receive
+    // void dac_receiveRxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksAwait); // Blocking Rx-receive
+
+    // // Tx-Functions
+    // void dac_transmitTxPackage(enum dac_packIndex iPack, uint8_t nPacksSend);         // Nonblocking Tx-transmit
+    // void dac_transmitTxPackageBlocking(enum dac_packIndex iPack, uint8_t nPacksSend); // Blocking Tx-Transmit until it's finished
+
+    // Query-Functions
+    void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks); // Sends a pack and query the response (changes confPack to NOP-Write)
 
 #endif

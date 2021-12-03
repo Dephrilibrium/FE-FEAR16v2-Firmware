@@ -28,6 +28,8 @@ void dacs_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_
 \*******************************/
 DAC_Data_t _DAC_DataOut = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
 DAC_Data_t _DAC_DataIn = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
+ssiStream_t _outputStream = {.nPacks DAC_NDACS, .nBytes = DAC_NDACS * DAC_PACK_NBYTES};
+ssiStream_t _inpStream = {.nPacks DAC_NDACS, .nBytes = DAC_NDACS * DAC_PACK_NBYTES};
 uint16_t _RxNBytesReceived = 0; // Have to be global to be able to "abort" a receive
 
 /*******************************\
