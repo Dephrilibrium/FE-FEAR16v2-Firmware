@@ -12,6 +12,8 @@
 /*******************************\
 | Defines
 \*******************************/
+#define DAC_DEBUG_RXORDER_1DAC // For testing purposes the Rx buffer-fill order can be rereversed!
+
 // DAC Datastructure
 #define DAC_NDACS 2       // Amount of DACs in daisy-chain
 #define DAC_CONFPACKS 1   // Amoutn of config-packs
@@ -204,12 +206,12 @@ enum dac_packIndex
 };
 
 /* Structure of Cmd-Byte
-* Bit[23]: RW - RW = 0 sets a write operation; RW = 1 sets a read operation
-* Bit[22]: Don't care
-* Bit[21:16]: Register-Address N
-* Bit[15:0]: Data-Bits
-* Every other following 16 Bits: Additional Data-Bits for N+1, N+2, ...
-*/
+ * Bit[23]: RW - RW = 0 sets a write operation; RW = 1 sets a read operation
+ * Bit[22]: Don't care
+ * Bit[21:16]: Register-Address N
+ * Bit[15:0]: Data-Bits
+ * Every other following 16 Bits: Additional Data-Bits for N+1, N+2, ...
+ */
 union DAC_StructuralDataPack
 {
   uint8_t Serialized[DAC_PACK_NBYTES];

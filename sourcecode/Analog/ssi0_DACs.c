@@ -245,7 +245,7 @@ enum ssi0_FIFOStatus ssi0_RxFifoStatus(void)
    * When Debugging the Debugger reads out the SSI0-DR Register!
    * Therefore sometimes it can be that the RxFIFO Empty bit can
    *  disappear for "no reason"!
-  */
+   */
 
   if (SR & SSI0_SR_RFF) // Check receive-FIFO Full
     return ssi0_FIFO_Full;
@@ -343,20 +343,29 @@ void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
   // ssi0_selectDACs(bFalse); // Chip-Deselect
 }
 
-void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes)
+void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytesCopied, uint16_t nMaxBytes)
 {
-  /* Data comes in reverse order -> Reverse copy into stream */
+  /* The received bytes comes in reversed order! */
 
-  uint16_t iCpyByte = 0; // Build last offset-index
+#ifdef DAC_DEBUG_RXORDER_1DAC
+  uint16_t iCpyByte = 0; // CopyIndex for reversed order
+#else
+  uint16_t iCpyByte = nMaxBytes - 1; // CopyIndex for reversed order
+#endif
+
+  // Trick-checking by using underflow of uint16 to avoid "iCpyByte -1" in each loop
   while (iCpyByte < nMaxBytes)
   {
     if (ssi0_RxFifoStatus() == ssi0_FIFO_Empty)
       break;
 
     serializedStream[iCpyByte] = SSI0->DR;
+#ifdef DAC_DEBUG_RXORDER_1DAC
     iCpyByte++;
+#else
+    iCpyByte--;
+#endif
   }
 
-  // Set amount of copied bytes
-  *nBytes = iCpyByte; // iCpyByte was previously decremented by 1
+  *nBytesCopied = nMaxBytes - (iCpyByte + 1); // Set amount of copied bytes
 }

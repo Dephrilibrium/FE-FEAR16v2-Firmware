@@ -5,6 +5,7 @@
 
 /* Project specific */
 #include "dacWrapper.h"
+#include "preciseTime.h"
 #include "swap.h"
 
 /*******************************\
@@ -65,8 +66,9 @@ void dac_setupSequence(void)
   dataWord = DAC_SPICONF_SDOEN;
   dac_setToAllConfPacks(cmdByte, dataWord);
   dac_queryPack(dac_pack_ctrlDAC1);
+  pTime_wait(40); // Wait 450µs that DAC can enable SDO
 
-  // Select Channel range +-1V
+  // Select Channel range +-10V
   cmdByte = DAC_WRITE | DAC_REG_ADDR_DACRANGE0;
   dataWord = DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)    // Ch0, Ch8  range: -10V to 10V
              | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)  // Ch1, Ch9  range: -10V to 10V
