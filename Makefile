@@ -19,7 +19,7 @@ TARGET = FEAR-16
 # building variables
 ######################################
 # debug build?
-DEBUG = 1
+DEBUGMODE = -ggdb3
 # optimization
 OPT = -O0
 # silent compile (comment for full output!)
@@ -87,19 +87,20 @@ BIN = $(CP) -O binary -S
 # CFLAGS
 #######################################
 # cpu
+DEVICE = TM4C123GH6PM
 CPU = -mcpu=cortex-m4
 ARCH = -march=armv7e-m
 TUNE = -mtune=cortex-m4
 
 # fpu
 # NONE for Cortex-M0/M0+/M3
-FPU = -mfpu=fpv4-sp-d16
+#FPU = -mfpu=fpv4-sp-d16
 
 # float-abi
-FLOAT-ABI = -mfloat-abi=softfp
+#FLOAT-ABI = -mfloat-abi=softfp
 
 # mcu
-MCU = -mthumb $(ARCH) $(TUNE) $(CPU) $(FPU) $(FLOAT-ABI)
+MCU = -mthumb -D$(DEVICE) $(CPU) $(ARCH) $(TUNE) $(FPU) $(FLOAT-ABI)
 
 # macros for gcc
 # AS defines
@@ -140,14 +141,10 @@ $(sort $(dir $(wildcard $(BASE_DIR)/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/))) \
 
 
 # compile gcc flags
-ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+ASFLAGS = $(DEBUGMODE) $(MCU) $(AS_DEFS) $(AS_INCLUDES) -Wall -fdata-sections -ffunction-sections
 
-CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Wno-unknown-pragmas -Wno-unused-function -fdata-sections -ffunction-sections
+CFLAGS = $(DEBUGMODE) $(OPT) $(MCU) $(C_DEFS) $(C_INCLUDES) -Wall -Wno-unknown-pragmas -Wno-unused-function -fdata-sections -ffunction-sections
 
-ifeq ($(DEBUG), 1)
-# CFLAGS += -g -gdwarf-2
-CFLAGS += -ggdb3
-endif
 
 
 # Generate dependency information
@@ -161,9 +158,10 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = TM4C123GH6PM/TM4C123GH6PM.ld
 
 # libraries
-LIBS = -lc -lm -lnosys 
+#LIBS = -lc -lm -lnosys 
+LIBS=
 LIBDIR = 
-LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS)
+LDFLAGS = $(MCU) --specs=nosys.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS)
 #  -mthumb # Already included to MCU
 # -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 

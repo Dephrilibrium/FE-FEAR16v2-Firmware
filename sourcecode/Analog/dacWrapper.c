@@ -2,6 +2,7 @@
 | Includes
 \*******************************/
 /* Std-Libs */
+#include "math.h"
 
 /* Project specific */
 #include "dacWrapper.h"
@@ -11,9 +12,132 @@
 /*******************************\
 | Local Defines
 \*******************************/
-#pragma region Hardwaredefines
+#pragma region DAC Hardwaredefines
 
-#pragma endregion Hardwaredefines
+#define DAC_READ BIT(7) // Do nothing when reading from DAC
+#define DAC_WRITE 0x00  // Set when writing to DAC-Registers
+#pragma region DAC Register Addresses
+#define DAC_REG_ADDR_NOP OPTION(0x00, 0)         // Write-Only
+#define DAC_REG_ADDR_DEVICEID OPTION(0x01, 0)    // Read-Only
+#define DAC_REG_ADDR_STATUS OPTION(0x02, 0)      // Read-Only
+#define DAC_REG_ADDR_SPICONFIG OPTION(0x03, 0)   // R/W
+#define DAC_REG_ADDR_GENCONFIG OPTION(0x04, 0)   // R/W
+#define DAC_REG_ADDR_BRDCONFIG OPTION(0x05, 0)   // R/W
+#define DAC_REG_ADDR_SYNCCONFIG OPTION(0x06, 0)  // R/W
+#define DAC_REG_ADDR_TOGGCONFIG0 OPTION(0x07, 0) // R/W
+#define DAC_REG_ADDR_TOGGCONFIG1 OPTION(0x08, 0) // R/W
+#define DAC_REG_ADDR_DACPWDWN OPTION(0x09, 0)    // R/W
+#define DAC_REG_ADDR_DACRANGE0 OPTION(0x0B, 0)   // Write-Only
+#define DAC_REG_ADDR_DACRANGE1 OPTION(0x0C, 0)   // Write-Only
+#define DAC_REG_ADDR_TRIGGER OPTION(0x0E, 0)     // Write-Only
+#define DAC_REG_ADDR_BRDCAST OPTION(0x0F, 0)     // R/W
+
+#define DAC_REG_ADDR_CH_OFFSET 0x14
+#define DAC_REG_ADDR_DAC0 OPTION(DAC_REG_ADDR_CH_OFFSET + 0, 0) // R/W
+#define DAC_REG_ADDR_DAC1 OPTION(DAC_REG_ADDR_CH_OFFSET + 1, 0) // R/W
+#define DAC_REG_ADDR_DAC2 OPTION(DAC_REG_ADDR_CH_OFFSET + 2, 0) // R/W
+#define DAC_REG_ADDR_DAC3 OPTION(DAC_REG_ADDR_CH_OFFSET + 3, 0) // R/W
+#define DAC_REG_ADDR_DAC4 OPTION(DAC_REG_ADDR_CH_OFFSET + 4, 0) // R/W
+#define DAC_REG_ADDR_DAC5 OPTION(DAC_REG_ADDR_CH_OFFSET + 5, 0) // R/W
+#define DAC_REG_ADDR_DAC6 OPTION(DAC_REG_ADDR_CH_OFFSET + 6, 0) // R/W
+#define DAC_REG_ADDR_DAC7 OPTION(DAC_REG_ADDR_CH_OFFSET + 7, 0) // R/W
+#define DAC_REG_ADDR_OFFSET0 OPTION(0x21, 0)                    // R/W
+#define DAC_REG_ADDR_OFFSET1 OPTION(0x22, 0)                    // R/W
+#pragma endregion DAC Register Addresses
+
+#pragma region DAC Register Bits
+#define DAC_NOP_DATA 0x00 // Always use this when writing to NOP (e.g. reading data)
+
+#define DAC_DEVICEID_VERSIONID(x) (x & 0x3)      // Parse out Version-ID
+#define DAC_DEVICEID_DEVICEID(x) SHIFTDOWN(x, 2) // Parse out Device-ID
+
+#define DAC_SR_TEMPALM BIT(0) // Temperature-Alarm bit
+#define DAC_SR_DACBUSY BIT(1) // DAC-Busy bit
+#define DAC_SR_CRCALM BIT(2)  // CRC-Alarm bit
+
+#define DAC_SPICONF_FSDO BIT(1)       // Fast SDO bit (1 = update SDO on rising edge; 0 = update SDO on falling edge)
+#define DAC_SPICONF_SDOEN BIT(2)      // DAC SDO enable
+#define DAC_SPICONF_STREN BIT(3)      // Streaming-Mode enable
+#define DAC_SPICONF_CRCEN BIT(4)      // CRC-Check enable
+#define DAC_SPICONF_DEVPWDWN BIT(5)   // Device-PowerDown (1 = device in power-down; 0 = device active)
+#define DAC_SPICONF_SOFTTGLEN BIT(6)  // Soft-Toggle enable
+#define DAC_SPICONF_CRCALMEN BIT(9)   // CRC-Alarm enable
+#define DAC_SPICONF_DACBUSYEN BIT(10) // DAC-Busy enable
+#define DAC_SPICONF_TEMPALMEN BIT(11) // DAC Temperature-Alarm enable
+
+#define DAC_GENCONFIG_DAC_0_1_DIFF_EN BIT(2) // Enable output 0 & 1 as differential pair
+#define DAC_GENCONFIG_DAC_2_3_DIFF_EN BIT(3) // Enable output 2 & 3 as differential pair
+#define DAC_GENCONFIG_DAC_4_5_DIFF_EN BIT(4) // Enable output 4 & 5 as differential pair
+#define DAC_GENCONFIG_DAC_6_7_DIFF_EN BIT(5) // Enable output 6 & 7 as differential pair
+#define DAC_GENCONFIG_REF_PWDWN BIT(14)      // '1' = Disable internal reference
+
+#define DAC_BRDCONFIG_DAC0_BRD_EN BIT(4)  // Enable DAC-Ch0 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC1_BRD_EN BIT(5)  // Enable DAC-Ch1 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC2_BRD_EN BIT(6)  // Enable DAC-Ch2 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC3_BRD_EN BIT(7)  // Enable DAC-Ch3 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC4_BRD_EN BIT(8)  // Enable DAC-Ch4 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC5_BRD_EN BIT(9)  // Enable DAC-Ch5 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC6_BRD_EN BIT(10) // Enable DAC-Ch6 to be broadcastet by writing a value to BRDCAST
+#define DAC_BRDCONFIG_DAC7_BRD_EN BIT(11) // Enable DAC-Ch7 to be broadcastet by writing a value to BRDCAST
+
+#define DAC_SYNCCONFIG_DAC0_SYNC_EN BIT(4)  // '1' = Enable DAC-Ch0 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC1_SYNC_EN BIT(5)  // '1' = Enable DAC-Ch1 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC2_SYNC_EN BIT(6)  // '1' = Enable DAC-Ch2 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC3_SYNC_EN BIT(7)  // '1' = Enable DAC-Ch3 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC4_SYNC_EN BIT(8)  // '1' = Enable DAC-Ch4 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC5_SYNC_EN BIT(9)  // '1' = Enable DAC-Ch5 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC6_SYNC_EN BIT(10) // '1' = Enable DAC-Ch6 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+#define DAC_SYNCCONFIG_DAC7_SYNC_EN BIT(11) // '1' = Enable DAC-Ch7 to update synchroniously by triggering LDAC; '0' = Update asynchrone
+
+#define DAC_TOGGCONFIG_TOGGLEMODE_DISABLED 0x00          // Toggle disabled
+#define DAC_TOGGCONFIG_TOGGLEMODE_TOGGLE0 0x01           // Toggle assigned to Toggle0 bit
+#define DAC_TOGGCONFIG_TOGGLEMODE_TOGGLE1 0x02           // Toggle assigned to Toggle1 bit
+#define DAC_TOGGCONFIG_TOGGLEMODE_TOGGLE2 0x03           // Toggle assigned to Toggle2 bit
+#define DAC_TOGGCONFIG1_DAC0_TOGGLEMODE(x) OPTION(x, 8)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG1_DAC1_TOGGLEMODE(x) OPTION(x, 10) // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG1_DAC2_TOGGLEMODE(x) OPTION(x, 12) // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG1_DAC3_TOGGLEMODE(x) OPTION(x, 14) // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC4_TOGGLEMODE(x) OPTION(x, 0)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC5_TOGGLEMODE(x) OPTION(x, 2)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC6_TOGGLEMODE(x) OPTION(x, 4)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+#define DAC_TOGGCONFIG0_DAC7_TOGGLEMODE(x) OPTION(x, 6)  // Enable Toggle mode to corresponding Toggle-bit in TRIGGER-Register
+
+#define DAC_DACPWDWN_DAC0 BIT(4)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC1 BIT(5)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC2 BIT(6)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC3 BIT(7)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC4 BIT(8)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC5 BIT(9)  // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC6 BIT(10) // '1' = Enable / '0' = Disable corresponding DAC-output
+#define DAC_DACPWDWN_DAC7 BIT(11) // '1' = Enable / '0' = Disable corresponding DAC-output
+
+#define DAC_DACRANGE_0to5 0b0000             // Range: 0V to 5V
+#define DAC_DACRANGE_0to10 0b0001            // Range: 0V to 10V
+#define DAC_DACRANGE_0to20 0b0010            // Range: 0V to 20V
+#define DAC_DACRANGE_0to40 0b0100            // Range: 0V to 40V
+#define DAC_DACRANGE_5to5 0b1001             // Range: -5V to 5V
+#define DAC_DACRANGE_10to10 0b1010           // Range: -10V to 10V
+#define DAC_DACRANGE_20to20 0b1100           // Range: -20V to 20V
+#define DAC_DACRANGE_2p5to2p5 0b1110         // Range: -2.5V to 2.5V
+#define DAC_DACRANGE_DAC0_4(x) OPTION(x, 0)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE_DAC1_5(x) OPTION(x, 4)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE_DAC2_6(x) OPTION(x, 8)  // Set the DAC-Range for the corresponding DAC-Ch
+#define DAC_DACRANGE_DAC3_7(x) OPTION(x, 12) // Set the DAC-Range for the corresponding DAC-Ch
+
+#define DAC_TRIGGER_SOFTRST OPTION(0b1010, 0) // When written into TRIGGER the device resets to default state
+#define DAC_TRIGGER_LDAC BIT(4)               // '1' = Channels configurated in SYNCCONFIG are updated sychronously
+#define DAC_TRIGGER_TOG0 BIT(5)               // '1' = Toggles the corresponding Channels configurated in TOGGCONF
+#define DAC_TRIGGER_TOG1 BIT(6)               // '1' = Toggles the corresponding Channels configurated in TOGGCONF
+#define DAC_TRIGGER_TOG2 BIT(7)               // '1' = Toggles the corresponding Channels configurated in TOGGCONF
+#define DAC_TRIGGER_ALMRST BIT(8)             // '1' = Resets the event-alarm output
+
+#pragma endregion DAC Register Bits
+
+#pragma endregion DAC Hardwaredefines
+
+/*******************************\
+| Local Enum/Struct/Union
+\*******************************/
 
 /*******************************\
 | Local function declarations
@@ -27,6 +151,9 @@ void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t
 void dac_prepareTxData(enum dac_packIndex packIndex);
 void dac_fetchRxData(enum dac_packIndex packIndex);
 
+uint16_t dac_selectVoltRange(uint16_t chRange);
+uint16_t dac_convertFloatTo16BitRange(float voltage);
+
 /*******************************\
 | Global variables
 \*******************************/
@@ -35,6 +162,8 @@ DAC_Data_t _DAC_DataIn = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NAL
 ssiStream_t _outputStream = {.nPacks = DAC_NDACS, .nBytes = DAC_BYTES_PER_SEND, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1};
 ssiStream_t _inputStream = {.nPacks = DAC_NDACS, .nBytes = 0, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1, .nSize = DAC_NDACS * DAC_PACK_NBYTES};
 uint16_t _RxNBytesReceived = 0; // Have to be global to be able to "abort" a receive
+
+float _dacVoltSpan = 0; // Used to determine the DAC-register-value
 
 /*******************************\
 | Function definitons
@@ -56,48 +185,39 @@ void dac_wipeDACData(void)
 #pragma GCC diagnostic pop
 }
 
-void dac_setupSequence(void)
-{
-  uint8_t cmdByte = 0;
-  uint16_t dataWord = 0;
-
-  // Enable SDO
-  cmdByte = DAC_WRITE | DAC_REG_ADDR_SPICONFIG;
-  dataWord = DAC_SPICONF_SDOEN;
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC1);
-  pTime_wait(40); // Wait 450µs that DAC can enable SDO
-
-  // Select Channel range +-10V
-  cmdByte = DAC_WRITE | DAC_REG_ADDR_DACRANGE0;
-  dataWord = DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)    // Ch0, Ch8  range: -10V to 10V
-             | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)  // Ch1, Ch9  range: -10V to 10V
-             | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10)  // Ch2, Ch10 range: -10V to 10V
-             | DAC_DACRANGE1_DAC0(DAC_DACRANGE_10to10); // Ch3, Ch11 range: -10V to 10V
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC1);
-
-  // Select Channel range +-1V
-  cmdByte = DAC_WRITE | DAC_REG_ADDR_NOP;
-  dataWord = DAC_NOP_DATA;
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC1);
-}
-
 void dac_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.ConfPacks, _DAC_DataOut.nConfPacks);
-#pragma GCC diagnostic pop
+  for (uint8_t iConfPack = 0; iConfPack < _DAC_DataOut.nConfPacks; iConfPack++)
+  {
+    _DAC_DataOut.ConfPacks[iConfPack].CmdByte = cmdByte;
+    _DAC_DataOut.ConfPacks[iConfPack].Data = dataWord;
+  }
+  // #pragma GCC diagnostic push
+  // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+  //   dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.ConfPacks, _DAC_DataOut.nConfPacks);
+  // #pragma GCC diagnostic pop
 }
 
-void dac_setToAllVoltPacks(uint8_t cmdByte, uint16_t dataWord)
+/* ATTENTION
+ * This method grabs the full cmdByte (uint8_t) but only uses the R/W flag of the byte!
+ */
+void dac_setToAllVoltPacks(uint8_t rwFlag, uint16_t dataWord)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.VoltPacks, _DAC_DataOut.nVoltPacks);
-#pragma GCC diagnostic pop
+  uint8_t cmdByte;
+  rwFlag &= DAC_READ;
+  for (uint16_t iVoltCh = 0; iVoltCh < _DAC_DataOut.nVoltPacks; iVoltCh++)
+  {
+    cmdByte = rwFlag | (DAC_REG_ADDR_CH_OFFSET + iVoltCh);
+    for (uint8_t iDAC = 0; iDAC < DAC_NDACS; iDAC++)
+    {
+      _DAC_DataOut.VoltPacks[iVoltCh * DAC_NDACS + iDAC].CmdByte = cmdByte;
+      _DAC_DataOut.VoltPacks[iVoltCh * DAC_NDACS + iDAC].Data = dataWord;
+    }
+  }
+  // #pragma GCC diagnostic push
+  // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+  //   dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.VoltPacks, _DAC_DataOut.nVoltPacks);
+  // #pragma GCC diagnostic pop
 }
 
 void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks)
@@ -109,34 +229,169 @@ void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t
   }
 }
 
+void dac_setupSequence(void)
+{
+  uint8_t cmdByte = 0;
+  uint16_t dataWord = 0;
+
+  pTime_wait(200); // POR needs 1ms to "boot" up; Wait >1ms
+
+  // // Soft-Reset
+  // cmdByte = DAC_WRITE | DAC_REG_ADDR_TRIGGER;
+  // dataWord = DAC_TRIGGER_SOFTRST;
+  // dac_setToAllConfPacks(cmdByte, dataWord);
+  // dac_queryPack(dac_pack_ctrlDAC0);
+
+  // pTime_wait(200); // SoftReset triggers a POR (wait >1ms)
+
+  // Enable SDO; No Alarms; No powerdown
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_SPICONFIG;
+  dataWord = DAC_SPICONF_SDOEN;
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+
+  // Internal VRef on; No Differntial Pairs
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_GENCONFIG;
+  dataWord = 0x00;
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+
+  // No broadcasts
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_BRDCONFIG;
+  dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+
+  // No synced DACs
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_SYNCCONFIG;
+  dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+
+  // Disable all AB-Toggles
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_TOGGCONFIG0;
+  dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_TOGGCONFIG1;
+  dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+
+  // Select Channel range +-10V
+  uint16_t range = dac_selectVoltRange(DAC_DACRANGE_10to10);
+  // Register RANGE1 (DACs 0-3)
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_DACRANGE1;
+  dataWord = DAC_DACRANGE_DAC0_4(range)    // Ch0, Ch8  range
+             | DAC_DACRANGE_DAC1_5(range)  // Ch1, Ch9  range
+             | DAC_DACRANGE_DAC2_6(range)  // Ch2, Ch10 range
+             | DAC_DACRANGE_DAC3_7(range); // Ch3, Ch11 range
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+  // Register RANGE0 (DACs 4-7)
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_DACRANGE0;
+  dataWord = DAC_DACRANGE_DAC0_4(range)    // Ch4, Ch12  range
+             | DAC_DACRANGE_DAC1_5(range)  // Ch5, Ch13 range
+             | DAC_DACRANGE_DAC2_6(range)  // Ch6, Ch14 range
+             | DAC_DACRANGE_DAC3_7(range); // Ch7, Ch15 range
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+
+  // Prepare 0V to all DACs
+  dac_setToAllVoltPacks(DAC_WRITE, dac_convertFloatTo16BitRange(0.0f));
+  dac_queryPack(dac_voltPack_CH0);
+  dac_queryPack(dac_voltPack_CH1);
+  dac_queryPack(dac_voltPack_CH2);
+  dac_queryPack(dac_voltPack_CH3);
+  dac_queryPack(dac_voltPack_CH4);
+  dac_queryPack(dac_voltPack_CH5);
+  dac_queryPack(dac_voltPack_CH6);
+  dac_queryPack(dac_voltPack_CH7);
+
+  // Disable powerdown of DAC-Outputs
+  cmdByte = DAC_WRITE | DAC_REG_ADDR_DACPWDWN;
+  dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
+  dac_setToAllConfPacks(cmdByte, dataWord);
+  dac_queryPack(dac_pack_ctrlDAC0);
+}
+
+uint16_t dac_selectVoltRange(uint16_t chRange)
+{
+  switch (chRange)
+  {
+  case DAC_DACRANGE_0to5:
+    _dacVoltSpan = 5.0f;
+    break;
+
+  case DAC_DACRANGE_0to10:
+    _dacVoltSpan = 10.0f;
+    break;
+
+  case DAC_DACRANGE_0to20:
+    _dacVoltSpan = 20.0f;
+    break;
+
+  case DAC_DACRANGE_0to40:
+    _dacVoltSpan = 40.0f;
+    break;
+
+  case DAC_DACRANGE_5to5:
+    _dacVoltSpan = 10.0f;
+    break;
+
+    // case DAC_DACRANGE_10to10: // Used as default!
+    //   _dacVoltSpan = 20.0f;
+    //   break;
+
+  case DAC_DACRANGE_20to20:
+    _dacVoltSpan = 40.0f;
+    break;
+
+  case DAC_DACRANGE_2p5to2p5:
+    _dacVoltSpan = 5.0f;
+    break;
+
+  default: // +-10V
+    _dacVoltSpan = 20.0f;
+    chRange = DAC_DACRANGE_10to10;
+    break;
+  }
+
+  return chRange;
+}
+
 void dac_prepareTxData(enum dac_packIndex packIndex)
 {
   // Prepare Tx
   _outputStream.targetPack = packIndex;
-  for (uint8_t iPack = 0; iPack < _outputStream.nPacks; iPack++)
+  for (int iPack = _outputStream.nPacks - 1; iPack >= 0; iPack--)
   {
     _outputStream.Packs[iPack].CmdByte = _DAC_DataOut.Packs[_outputStream.targetPack + iPack].CmdByte;
-    _outputStream.Packs[iPack].Data = swap_word(_DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data);
+    // _outputStream.Packs[iPack].Data = swap_word(_DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data);
+    _outputStream.Packs[iPack].Data = _DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data;
   }
 }
 
 void dac_fetchRxData(enum dac_packIndex packIndex)
 {
   // Get and convert Rx when not the first input!
-  if (_inputStream.targetPack >= 0)
+  if (_inputStream.targetPack <= (dac_pack_Count - DAC_NDACS))
   {
     // Receive into input-Buffer
     // HINT! Debugger reads out SSI0->DR (removes values from FIFO!)
     while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
       ssi0_receive(_inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
-    _inputStream.nBytes = 0; // Clear received bytes for next round
 
     // Reconvert into datastructure
-    for (uint8_t iPack = 0; iPack < _inputStream.nPacks; iPack++)
+    for (int iPack = _inputStream.nPacks - 1; iPack >= 0; iPack--)
     {
-      _DAC_DataIn.Packs[_inputStream.targetPack + iPack].CmdByte = _inputStream.Packs[iPack].CmdByte;
-      _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = swap_word(_inputStream.Packs[iPack].Data);
+      uint8_t iDataInPack = (_inputStream.nPacks - 1) - iPack;
+      _DAC_DataIn.Packs[_inputStream.targetPack + iDataInPack].CmdByte = _inputStream.Packs[iPack].CmdByte;
+      // _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = swap_word(_inputStream.Packs[iPack].Data);
+      _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = _inputStream.Packs[iPack].Data;
     }
+
+    _inputStream.nBytes = 0; // Everything fetched -> Clear received bytes for next round
   }
 
   _inputStream.targetPack = packIndex;
@@ -181,6 +436,44 @@ void dac_queryPack(enum dac_packIndex packIndex)
 
   // Get received-data and set the next package index
   dac_fetchRxData(packIndex);
+}
+
+void dac_setChVoltage(enum dac_voltPackIndex channel, float voltage)
+{
+  DAC_Data_t *tx = dac_grabTxDataStruct();
+
+  tx->VoltPacks[channel].CmdByte = DAC_WRITE | ((channel % 8) + DAC_REG_ADDR_CH_OFFSET); // Keep channel in Range and add the ch-offset
+  tx->VoltPacks[channel].Data = dac_convertFloatTo16BitRange(voltage);
+
+  dac_queryPack((enum dac_voltPackIndex)channel);
+}
+
+uint16_t dac_convertFloatTo16BitRange(float voltage)
+{
+  float _dacVoltPeak = _dacVoltSpan / 2; // PeakPeak to single-side Peak
+
+  // Check is given voltage out of range and keep in range
+  if (fabs(voltage) > _dacVoltPeak)
+  {
+    if (voltage < 0)
+      voltage = -_dacVoltPeak;
+    else
+      voltage = _dacVoltPeak;
+  }
+
+  /* Conversion-formula
+   * DAC-Value 0 results in minimum value (-RANGE) -> Simple half-span shift and conversion by the rule of proportion
+   *
+   * Therefore when 0V is given it has to be shifted by the half range-span
+   * VShift = voltage + (VSpan/2)
+   *
+   * normalized by the span
+   * VNorm = VShift / VSpan
+   *
+   * and converted into a 16-bit value
+   * 16Bit-DAC-Val = VNorm * 0xFFFF
+   */
+  return (uint16_t)(((voltage + _dacVoltPeak) / _dacVoltSpan) * 0xFFFF); // convert into 16bit-value
 }
 
 // cBool dac_RxListen(cBool listenState)

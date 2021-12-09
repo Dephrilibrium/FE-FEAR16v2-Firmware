@@ -165,9 +165,9 @@ void ssi0_init(enum ssi0_clkRate clkRate)
 
   // Prepare DAC for SSI0-Init
   ssi0_rstDACs(bTrue);     // Set DAC to reset while init ssi0
-  ssi0_clrDACs(bFalse);    // Take back output clear
-  ssi0_selectDACs(bFalse); // Deselect DACs
   ssi0_ldacDACs(bFalse);   // No synchrone output by default
+  ssi0_selectDACs(bFalse); // Deselect DACs
+  ssi0_clrDACs(bFalse);    // Take back output clear
 
   // SPI0
   ssi0_enable(bOff);        // Ensure SSI0 is off
@@ -330,7 +330,7 @@ void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
   // Has to be managed by the user!
   // ssi0_selectDACs(bTrue); // Chip-Select
 
-  for (uint16_t iByte = 0; iByte < bytes_n; iByte++)
+  for (int iByte = bytes_n - 1; iByte >= 0; iByte--) // Use underflow-trick to check "-1"
   {
     while (ssi0_TxFifoStatus() == ssi0_FIFO_Full)
       ; // Wait when FIFO is full!
@@ -347,24 +347,14 @@ void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytesCopied, uint16_t nM
 {
   /* The received bytes comes in reversed order! */
 
-#ifdef DAC_DEBUG_RXORDER_1DAC
-  uint16_t iCpyByte = 0; // CopyIndex for reversed order
-#else
-  uint16_t iCpyByte = nMaxBytes - 1; // CopyIndex for reversed order
-#endif
+  int iCpyByte = nMaxBytes - 1; // CopyIndex for reversed order
 
-  // Trick-checking by using underflow of uint16 to avoid "iCpyByte -1" in each loop
-  while (iCpyByte < nMaxBytes)
+  for (; iCpyByte >= 0; iCpyByte--)
   {
     if (ssi0_RxFifoStatus() == ssi0_FIFO_Empty)
       break;
 
     serializedStream[iCpyByte] = SSI0->DR;
-#ifdef DAC_DEBUG_RXORDER_1DAC
-    iCpyByte++;
-#else
-    iCpyByte--;
-#endif
   }
 
   *nBytesCopied = nMaxBytes - (iCpyByte + 1); // Set amount of copied bytes
