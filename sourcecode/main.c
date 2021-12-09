@@ -41,14 +41,7 @@ int main(void)
     terminal_init();
     dacs_init();
 
-    // dac_setChVoltage(dac_voltPack_CH0, 0.0f);
-    // dac_setChVoltage(dac_voltPack_CH1, 0.0f);
-    // dac_setChVoltage(dac_voltPack_CH0, 1.0f);
-    // dac_setChVoltage(dac_voltPack_CH1, 1.0f);
-    // dac_setChVoltage(dac_voltPack_CH0, 2.0f);
-    // dac_setChVoltage(dac_voltPack_CH1, 2.0f);
-    // dac_setChVoltage(dac_voltPack_CH0, -1.0f);
-    // dac_setChVoltage(dac_voltPack_CH1, -1.0f);
+    uart1_Transmit("Hello from the FEAR-16. What can I do for you?\r\n");
 
     while (1)
     {

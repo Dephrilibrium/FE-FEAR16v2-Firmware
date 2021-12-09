@@ -6,6 +6,7 @@
 /* Project specific */
 #include "terminal.h"
 #include "uart1.h"
+#include "dacWrapper.h"
 
 /*******************************\
 | Local Defines
@@ -24,6 +25,8 @@ void terminal_wipeBuffers(void);     // Wipe linebuffer (with '\0')
 terminalCmd_t *terminal_decodeLineBuffer(void);
 
 void terminal_echo(terminalCmd_t *cmd);
+void terminal_setVoltageDAC(terminalCmd_t *cmd);
+
 void terminal_err(terminalCmd_t *cmd);
 void terminal_unknown(terminalCmd_t *cmd);
 
@@ -103,7 +106,7 @@ terminalCmd_t *terminal_decodeLineBuffer(void)
 {
     const char delim[] = " ";
     // strtok causes jump into default handler!
-    //char *tokStart = strtok(_inputLine.LineBuffer, delim); // Initiate strtok and search for space-character ' '
+    // char *tokStart = strtok(_inputLine.LineBuffer, delim); // Initiate strtok and search for space-character ' '
     char *tokStart = strtok(_inputLine.LineBuffer, delim); // Initiate strtok and search for space-character ' '
     while (tokStart != NULL)
     {
@@ -172,8 +175,13 @@ void terminal_wipeCmdStruct(void)
 #pragma region Terminal run commands
 enum terminalError terminal_runCmd(terminalCmd_t *cmd)
 {
-    if (strcmp("echo", cmd->argv[CMD_HANDLE_INDEX]) == 0)
+    if (strcmp(CMD_ECHO, cmd->argv[CMD_HANDLE_INDEX]) == 0)
         terminal_echo(cmd);
+    else if (strcmp(CMD_DAC_SETVOLT, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+    {
+        terminal_setVoltageDAC(cmd);
+    }
+
     else if (strcmp(CMD_ERR_HANDLE, cmd->argv[CMD_HANDLE_INDEX]) == 0) // Error
         terminal_err(cmd);
     else
@@ -193,6 +201,24 @@ void terminal_echo(terminalCmd_t *cmd)
             uart1_Transmit(" ");
     }
     uart1_Transmit(lineTerm.stdlineTerm);
+}
+
+void terminal_setVoltageDAC(terminalCmd_t *cmd)
+{
+    terminal_echo(cmd);
+    /* first attempt to test combination of terminal and
+     * dac driver. More guard clauses has to be added!
+     */
+    int fromChannel;
+    int toChannel;
+    float voltage;
+
+    fromChannel = atoi(strtok(cmd->argv[1], "-"));
+    toChannel = atoi(strtok(NULL, "-"));
+    voltage = atof(cmd->argv[2]);
+
+    for (uint16_t iCh = fromChannel; iCh <= toChannel; iCh++)
+        dac_setChVoltage((enum dac_voltPackIndex)iCh, voltage);
 }
 
 void terminal_err(terminalCmd_t *cmd)

@@ -7,6 +7,7 @@
 #include "string.h"
 #include "stdint.h"
 #include "stdio.h"
+#include "stdlib.h"
 
 /* Project specific */
 
@@ -22,6 +23,7 @@
 #define CMD_HANDLE_INDEX 0
 //#define CMD_ARG_START_INDEX 1
 #define CMD_ECHO "echo"
+#define CMD_DAC_SETVOLT "U"
 #pragma endregion Commands
 
 #define CMD_ERR_HANDLE_INDEX CMD_HANDLE_INDEX
