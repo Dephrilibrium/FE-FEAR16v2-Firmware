@@ -23,17 +23,24 @@
 #define CMD_HANDLE_INDEX 0
 //#define CMD_ARG_START_INDEX 1
 #define CMD_ECHO "echo"
-#define CMD_DAC_SETVOLT "U"
+// Further commands are outsourced to:
+// - terminalCmdsDAC
+//
 #pragma endregion Commands
+
+#pragma region Common Messages
+#define TERMINAL_ACKNOWLEDGED "ack "
+#define TERMINAL_NOT_ACKNOWLEDGED "nak "
+#pragma endregion Common Messages
 
 #define CMD_ERR_HANDLE_INDEX CMD_HANDLE_INDEX
 #define CMD_ERRMSG_INDEX 1
-#pragma region Error + Messages
-#define CMD_ERR_HANDLE "err;"
+#pragma region Error + Error Messages
+#define CMD_ERR_HANDLE "err"
 
 #define CMD_ERRMSG_UART1_BUFFEROVERFLOW "UART1: Rx bufferoverflow"
 #define CMD_ERRMSG_CMDSTRUCT_ARGC_EXEEDED "Cmd-Struct: argc exceeded maxArgc"
-#pragma endregion Error + Messages
+#pragma endregion Error + Error Messages
 
 /*******************************\
 | Enum/Struct/Union
@@ -76,5 +83,7 @@ void terminal_init(void);
 
 terminalCmd_t *terminal_fetchCmd(void);
 enum terminalError terminal_runCmd(terminalCmd_t *cmd);
+void terminal_ACK(char *msg);
+void terminal_NAK(char *msg);
 
 #endif
