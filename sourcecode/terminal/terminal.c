@@ -221,6 +221,11 @@ void terminal_unknown(terminalCmd_t *cmd)
 }
 #pragma endregion Terminal run commands
 
+void terminal_send(char *msg)
+{
+    uart1_Transmit(msg);
+}
+
 void terminal_ACK(char *msg)
 {
     uart1_Transmit(TERMINAL_ACKNOWLEDGED);

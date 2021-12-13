@@ -29,7 +29,7 @@
 /*******************************\
 | Function definitons
 \*******************************/
-uint32_t cstrCntChar(char *string, char cSearch)
+uint32_t cstrCntChar(const char *string, char cSearch)
 {
   if (string == NULL)
     return 0;
@@ -45,3 +45,17 @@ uint32_t cstrCntChar(char *string, char cSearch)
 
   return cCnt;
 }
+
+// cBool cstrIsNum(const char *string, enum StringNumberBase snb)
+// {
+//   cBool isNum = bTrue;
+//   char *lastStrP = string + 4096; // Do not allow strings longer than 4094
+//   char upper = '0' +
+
+//   while (string <= lastStrP)
+//   {
+//     if (*string == '\0')
+//       break;
+//       if(*string < '0' || *string > )
+//   }
+// }

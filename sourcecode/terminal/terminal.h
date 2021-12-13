@@ -83,6 +83,7 @@ void terminal_init(void);
 
 terminalCmd_t *terminal_fetchCmd(void);
 enum terminalError terminal_runCmd(terminalCmd_t *cmd);
+void terminal_send(char *msg);
 void terminal_ACK(char *msg);
 void terminal_NAK(char *msg);
 
