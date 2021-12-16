@@ -69,8 +69,6 @@ terminalCmd_t *terminal_fetchCmd(void)
             return &_command;
         }
         c = uart1_getc();
-        // Add option to echo on/off
-        uart1_putc(c);
 
         // Catch \r\n from the previous input!
         if (_inputLine.Filled == 0      // When trying on start to enter
@@ -92,11 +90,16 @@ terminalCmd_t *terminal_fetchCmd(void)
         }
 
         // Handle backspace
-        if (_inputLine.Filled > 0 && c == '\b')
+        if (_inputLine.Filled == 0 && c == '\b')
+            continue;
+        else if (_inputLine.Filled > 0 && c == '\b')
             _inputLine.Filled--;
-        else
+        else if (c != '\b')
             _inputLine.Filled++;
         //_inputLine.LineBuffer[_inputLine.Filled] = '\0'; // Be sure string is always terminated
+
+        // Add option to echo on/off
+        uart1_putc(c);
     }
 
     return NULL; // Nothing new here, give NULL

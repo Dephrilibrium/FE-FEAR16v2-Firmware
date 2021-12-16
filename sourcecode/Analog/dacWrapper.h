@@ -31,58 +31,28 @@
 /*******************************\
 | Enum/Struct/Union
 \*******************************/
-enum dac_confPackackIndex
-{
-  // Indicies for "ConfPacks"
-  dac_confPack_DAC0,  // Pack-Offset for confPack-Array: DAC0
-  dac_confPack_DAC1,  // Pack-Offset for confPack-Array: DAC1
-  dac_confPack_Count, // Amount of ConfPacks
-};
-
-enum dac_voltPackIndex
-{
-  // Indicies for "VoltPacks"
-  dac_voltPack_CH0,   // Pack-Offset for voltPack-Array: Ch 0
-  dac_voltPack_CH8,   // Pack-Offset for voltPack-Array: Ch 8
-  dac_voltPack_CH1,   // Pack-Offset for voltPack-Array: Ch 1
-  dac_voltPack_CH9,   // Pack-Offset for voltPack-Array: Ch 9
-  dac_voltPack_CH2,   // Pack-Offset for voltPack-Array: Ch 2
-  dac_voltPack_CH10,  // Pack-Offset for voltPack-Array: Ch10
-  dac_voltPack_CH3,   // Pack-Offset for voltPack-Array: Ch 3
-  dac_voltPack_CH11,  // Pack-Offset for voltPack-Array: Ch11
-  dac_voltPack_CH4,   // Pack-Offset for voltPack-Array: Ch 4
-  dac_voltPack_CH12,  // Pack-Offset for voltPack-Array: Ch12
-  dac_voltPack_CH5,   // Pack-Offset for voltPack-Array: Ch 5
-  dac_voltPack_CH13,  // Pack-Offset for voltPack-Array: Ch13
-  dac_voltPack_CH6,   // Pack-Offset for voltPack-Array: Ch 6
-  dac_voltPack_CH14,  // Pack-Offset for voltPack-Array: Ch14
-  dac_voltPack_CH7,   // Pack-Offset for voltPack-Array: Ch 7
-  dac_voltPack_CH15,  // Pack-Offset for voltPack-Array: Ch15
-  dac_voltPack_Count, // Amount of VoltPacks
-};
-
 enum dac_packIndex
 {
-  // Indicies for "Packs"
-  dac_pack_CH0,      // Pack-Offset for (All-)Pack-Array: Ch 0
-  dac_pack_CH8,      // Pack-Offset for (All-)Pack-Array: Ch 8
-  dac_pack_CH1,      // Pack-Offset for (All-)Pack-Array: Ch 1
-  dac_pack_CH9,      // Pack-Offset for (All-)Pack-Array: Ch 9
-  dac_pack_CH2,      // Pack-Offset for (All-)Pack-Array: Ch 2
-  dac_pack_CH10,     // Pack-Offset for (All-)Pack-Array: Ch10
-  dac_pack_CH3,      // Pack-Offset for (All-)Pack-Array: Ch 3
-  dac_pack_CH11,     // Pack-Offset for (All-)Pack-Array: Ch11
-  dac_pack_CH4,      // Pack-Offset for (All-)Pack-Array: Ch 4
-  dac_pack_CH12,     // Pack-Offset for (All-)Pack-Array: Ch12
-  dac_pack_CH5,      // Pack-Offset for (All-)Pack-Array: Ch 5
-  dac_pack_CH13,     // Pack-Offset for (All-)Pack-Array: Ch13
-  dac_pack_CH6,      // Pack-Offset for (All-)Pack-Array: Ch 6
-  dac_pack_CH14,     // Pack-Offset for (All-)Pack-Array: Ch14
-  dac_pack_CH7,      // Pack-Offset for (All-)Pack-Array: Ch 7
-  dac_pack_CH15,     // Pack-Offset for (All-)Pack-Array: Ch15
-  dac_pack_ctrlDAC0, // Pack-Offset for (All-)Pack-Array: DAC0
-  dac_pack_ctrlDAC1, // Pack-Offset for (All-)Pack-Array: DAC1
-  dac_pack_Count,    // Amount of all Packs
+  dac_vPack_Ch0,
+  dac_vPack_Ch1,
+  dac_vPack_Ch2,
+  dac_vPack_Ch3,
+  dac_vPack_Ch4,
+  dac_vPack_Ch5,
+  dac_vPack_Ch6,
+  dac_vPack_Ch7,
+  dac_vPack_Ch8,
+  dac_vPack_Ch9,
+  dac_vPack_Ch10,
+  dac_vPack_Ch11,
+  dac_vPack_Ch12,
+  dac_vPack_Ch13,
+  dac_vPack_Ch14,
+  dac_vPack_Ch15,
+  dac_vPacks_Count,
+  dac_cPack_DAC0 = dac_vPacks_Count,
+  dac_cPack_DAC1,
+  dac_allPacks_Count,
 };
 
 /* Structure of Cmd-Byte
@@ -95,27 +65,25 @@ enum dac_packIndex
 // union DAC_StructuralDataPack
 // {
 // uint8_t Serialized[DAC_PACK_NBYTES];
-struct DAC_StructuralDataPack
+typedef struct
 {
   uint16_t Data;
   uint8_t CmdByte;
-} __attribute__((packed));
-// };
-typedef struct DAC_StructuralDataPack DAC_StructuralDataPack_t;
+} __attribute__((packed)) DAC_StructuralDataPack_t;
 // typedef union DAC_StructuralDataPack DAC_StructuralDataPack_t;
 
-struct DAC_Data
+typedef struct
 {
-  const uint8_t nVoltPacks;
-  const uint8_t nConfPacks;
+  const uint8_t nVPacks;
+  const uint8_t nCPacks;
   const uint8_t nPacks;
 
   union
   {
     struct
     {
-      DAC_StructuralDataPack_t VoltPacks[DAC_NALLVOLTPACKS];
-      DAC_StructuralDataPack_t ConfPacks[DAC_NALLCONFPACKS];
+      DAC_StructuralDataPack_t VPacks[DAC_NALLVOLTPACKS];
+      DAC_StructuralDataPack_t CPacks[DAC_NALLCONFPACKS];
     };
 
     struct
@@ -123,10 +91,9 @@ struct DAC_Data
       DAC_StructuralDataPack_t Packs[DAC_NALLPACKS];
     };
   };
-};
-typedef struct DAC_Data DAC_Data_t;
+} DAC_Data_t;
 
-struct ssiStream
+typedef struct
 {
   uint16_t nBytes;
   const uint16_t nSize;
@@ -141,8 +108,7 @@ struct ssiStream
       DAC_StructuralDataPack_t Packs[DAC_NDACS];
     } __attribute__((packed));
   } __attribute__((packed)); // To be able to iterate through serializedStream it has to be packed
-};
-typedef struct ssiStream ssiStream_t;
+} ssiStream_t;
 
 /*******************************\
 | Function declaration
@@ -172,7 +138,7 @@ void dac_queryPack(enum dac_packIndex packIndex);
 // Query-Functions
 // void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks); // Sends a pack and query the response (changes confPack to NOP-Write)
 
-void dac_setChVoltage(enum dac_voltPackIndex channel, float voltage);
+void dac_setChVoltage(uint16_t channel, float voltage);
 
 void testvalues(void);
 #endif

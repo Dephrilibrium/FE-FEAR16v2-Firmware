@@ -3,8 +3,10 @@
 \*******************************/
 /* Std-Libs */
 #include "math.h"
+#include "stdio.h"
 
 /* Project specific */
+#include "common.h"
 #include "dacWrapper.h"
 #include "preciseTime.h"
 #include "swap.h"
@@ -144,10 +146,12 @@
 \*******************************/
 void dac_wipeDACData(void);
 void dac_setupSequence(void);
-void dac_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord);
-void dac_setToAllVoltPacks(uint8_t cmdByte, uint16_t dataWord);
-void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks);
+void dac_setCPacks(uint8_t cmdByte, uint16_t dataWord);
+void dac_setVPacks(uint8_t cmdByte, uint16_t dataWord);
+// void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks);
 
+enum dac_packIndex dac_IndexInt2EnumPackIndex(uint16_t iPackIndex);
+uint16_t dac_IndexEnumPackIndex2Int(enum dac_packIndex packIndex);
 void dac_prepareTxData(enum dac_packIndex packIndex);
 void dac_fetchRxData(enum dac_packIndex packIndex);
 
@@ -157,8 +161,8 @@ uint16_t dac_convertFloatTo16BitRange(float voltage);
 /*******************************\
 | Global variables
 \*******************************/
-DAC_Data_t _DAC_DataOut = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
-DAC_Data_t _DAC_DataIn = {.nConfPacks = DAC_NALLCONFPACKS, .nVoltPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
+DAC_Data_t _DAC_DataOut = {.nCPacks = DAC_NALLCONFPACKS, .nVPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
+DAC_Data_t _DAC_DataIn = {.nCPacks = DAC_NALLCONFPACKS, .nVPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
 ssiStream_t _outputStream = {.nPacks = DAC_NDACS, .nBytes = DAC_BYTES_PER_SEND, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1};
 ssiStream_t _inputStream = {.nPacks = DAC_NDACS, .nBytes = 0, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1, .nSize = DAC_NDACS * DAC_PACK_NBYTES};
 uint16_t _RxNBytesReceived = 0; // Have to be global to be able to "abort" a receive
@@ -180,54 +184,55 @@ void dac_wipeDACData(void)
   /* Wipe structure */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  dac_setToPacks(0, 0, _DAC_DataOut.Packs, _DAC_DataOut.nPacks);
-  dac_setToPacks(0, 0, _DAC_DataIn.Packs, _DAC_DataIn.nPacks);
+
+  dac_setCPacks(0, 0);
+  dac_setVPacks(0, 0);
 #pragma GCC diagnostic pop
 }
 
-void dac_setToAllConfPacks(uint8_t cmdByte, uint16_t dataWord)
+void dac_setCPacks(uint8_t cmdByte, uint16_t dataWord)
 {
-  for (uint8_t iConfPack = 0; iConfPack < _DAC_DataOut.nConfPacks; iConfPack++)
+  for (uint8_t iConfPack = 0; iConfPack < _DAC_DataOut.nCPacks; iConfPack++)
   {
-    _DAC_DataOut.ConfPacks[iConfPack].CmdByte = cmdByte;
-    _DAC_DataOut.ConfPacks[iConfPack].Data = dataWord;
+    _DAC_DataOut.CPacks[iConfPack].CmdByte = cmdByte;
+    _DAC_DataOut.CPacks[iConfPack].Data = dataWord;
   }
   // #pragma GCC diagnostic push
   // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  //   dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.ConfPacks, _DAC_DataOut.nConfPacks);
+  //   dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.ConfPacks, _DAC_DataOut.nCPacks);
   // #pragma GCC diagnostic pop
 }
 
 /* ATTENTION
  * This method grabs the full cmdByte (uint8_t) but only uses the R/W flag of the byte!
  */
-void dac_setToAllVoltPacks(uint8_t rwFlag, uint16_t dataWord)
+void dac_setVPacks(uint8_t rwFlag, uint16_t dataWord)
 {
   uint8_t cmdByte;
   rwFlag &= DAC_READ;
-  for (uint16_t iVoltCh = 0; iVoltCh < _DAC_DataOut.nVoltPacks; iVoltCh++)
+  for (uint16_t iVoltCh = 0; iVoltCh < DAC_VOLTPACKS; iVoltCh++)
   {
     cmdByte = rwFlag | (DAC_REG_ADDR_CH_OFFSET + iVoltCh);
     for (uint8_t iDAC = 0; iDAC < DAC_NDACS; iDAC++)
     {
-      _DAC_DataOut.VoltPacks[iVoltCh * DAC_NDACS + iDAC].CmdByte = cmdByte;
-      _DAC_DataOut.VoltPacks[iVoltCh * DAC_NDACS + iDAC].Data = dataWord;
+      _DAC_DataOut.VPacks[iVoltCh + iDAC * DAC_VOLTPACKS].CmdByte = cmdByte;
+      _DAC_DataOut.VPacks[iVoltCh + iDAC * DAC_VOLTPACKS].Data = dataWord;
     }
   }
   // #pragma GCC diagnostic push
   // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-  //   dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.VoltPacks, _DAC_DataOut.nVoltPacks);
+  //   dac_setToPacks(cmdByte, dataWord, _DAC_DataOut.VoltPacks, _DAC_DataOut.nVPacks);
   // #pragma GCC diagnostic pop
 }
 
-void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks)
-{
-  for (uint8_t iPack = 0; iPack < nPacks; iPack++)
-  {
-    packCollection[iPack].CmdByte = cmdByte;
-    packCollection[iPack].Data = dataWord;
-  }
-}
+// void dac_setToPacks(uint8_t cmdByte, uint16_t dataWord, DAC_StructuralDataPack_t *packCollection, uint8_t nPacks)
+// {
+//   for (uint8_t iPack = 0; iPack < nPacks; iPack++)
+//   {
+//     packCollection[iPack].CmdByte = cmdByte;
+//     packCollection[iPack].Data = dataWord;
+//   }
+// }
 
 void dac_setupSequence(void)
 {
@@ -247,36 +252,36 @@ void dac_setupSequence(void)
   // Enable SDO; No Alarms; No powerdown
   cmdByte = DAC_WRITE | DAC_REG_ADDR_SPICONFIG;
   dataWord = DAC_SPICONF_SDOEN;
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 
   // Internal VRef on; No Differntial Pairs
   cmdByte = DAC_WRITE | DAC_REG_ADDR_GENCONFIG;
   dataWord = 0x00;
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 
   // No broadcasts
   cmdByte = DAC_WRITE | DAC_REG_ADDR_BRDCONFIG;
   dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 
   // No synced DACs
   cmdByte = DAC_WRITE | DAC_REG_ADDR_SYNCCONFIG;
   dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 
   // Disable all AB-Toggles
   cmdByte = DAC_WRITE | DAC_REG_ADDR_TOGGCONFIG0;
   dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
   cmdByte = DAC_WRITE | DAC_REG_ADDR_TOGGCONFIG1;
   dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 
   // Select Channel range +-10V
   uint16_t range = dac_selectVoltRange(DAC_DACRANGE_10to10);
@@ -286,33 +291,29 @@ void dac_setupSequence(void)
              | DAC_DACRANGE_DAC1_5(range)  // Ch1, Ch9  range
              | DAC_DACRANGE_DAC2_6(range)  // Ch2, Ch10 range
              | DAC_DACRANGE_DAC3_7(range); // Ch3, Ch11 range
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
   // Register RANGE0 (DACs 4-7)
   cmdByte = DAC_WRITE | DAC_REG_ADDR_DACRANGE0;
-  dataWord = DAC_DACRANGE_DAC0_4(range)    // Ch4, Ch12  range
-             | DAC_DACRANGE_DAC1_5(range)  // Ch5, Ch13 range
-             | DAC_DACRANGE_DAC2_6(range)  // Ch6, Ch14 range
-             | DAC_DACRANGE_DAC3_7(range); // Ch7, Ch15 range
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 
   // Prepare 0V to all DACs
-  dac_setToAllVoltPacks(DAC_WRITE, dac_convertFloatTo16BitRange(0.0f));
-  dac_queryPack(dac_voltPack_CH0);
-  dac_queryPack(dac_voltPack_CH1);
-  dac_queryPack(dac_voltPack_CH2);
-  dac_queryPack(dac_voltPack_CH3);
-  dac_queryPack(dac_voltPack_CH4);
-  dac_queryPack(dac_voltPack_CH5);
-  dac_queryPack(dac_voltPack_CH6);
-  dac_queryPack(dac_voltPack_CH7);
+  dac_setVPacks(DAC_WRITE, dac_convertFloatTo16BitRange(0.0f));
+  dac_queryPack(dac_vPack_Ch0); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch1); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch2); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch3); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch4); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch5); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch6); // Sends also the DAC1 package (daisy-chain)
+  dac_queryPack(dac_vPack_Ch7); // Sends also the DAC1 package (daisy-chain)
 
   // Disable powerdown of DAC-Outputs
   cmdByte = DAC_WRITE | DAC_REG_ADDR_DACPWDWN;
   dataWord = DAC_NOP_DATA; // = 0x00; Setting bits to 1 disables the outputs (10k resistor to GND)
-  dac_setToAllConfPacks(cmdByte, dataWord);
-  dac_queryPack(dac_pack_ctrlDAC0);
+  dac_setCPacks(cmdByte, dataWord);
+  dac_queryPack(dac_cPack_DAC0);
 }
 
 uint16_t dac_selectVoltRange(uint16_t chRange)
@@ -362,33 +363,66 @@ uint16_t dac_selectVoltRange(uint16_t chRange)
 
 void dac_prepareTxData(enum dac_packIndex packIndex)
 {
+  // Determine package depending offset values
+  int16_t dataOffMul = 0;
+  int16_t dataOffAdd = 0;
+  if (packIndex < dac_vPacks_Count)
+  {
+    dataOffMul = DAC_VOLTPACKS;
+    dataOffAdd = 0;
+  }
+  else
+  {
+    dataOffMul = DAC_CONFPACKS;
+    dataOffAdd = dac_cPack_DAC0;
+  }
+
   // Prepare Tx
   _outputStream.targetPack = packIndex;
+  enum dac_packIndex dataStartPack = dataOffAdd + (packIndex % dataOffMul); // Determine starterpackage
   for (int iPack = _outputStream.nPacks - 1; iPack >= 0; iPack--)
+  // for (int iPack = 0; iPack < _outputStream.nPacks; iPack++)
   {
-    _outputStream.Packs[iPack].CmdByte = _DAC_DataOut.Packs[_outputStream.targetPack + iPack].CmdByte;
+    enum dac_packIndex dataPack = dataStartPack + iPack * dataOffMul;
+    _outputStream.Packs[iPack].CmdByte = _DAC_DataOut.Packs[dataPack].CmdByte;
     // _outputStream.Packs[iPack].Data = swap_word(_DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data);
-    _outputStream.Packs[iPack].Data = _DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data;
+    _outputStream.Packs[iPack].Data = _DAC_DataOut.Packs[dataPack].Data;
   }
 }
 
 void dac_fetchRxData(enum dac_packIndex packIndex)
 {
   // Get and convert Rx when not the first input!
-  if (_inputStream.targetPack <= (dac_pack_Count - DAC_NDACS))
+  if (_inputStream.targetPack < _DAC_DataIn.nPacks)
   {
     // Receive into input-Buffer
     // HINT! Debugger reads out SSI0->DR (removes values from FIFO!)
     while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
       ssi0_receive(_inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
 
+    // Determine package depending offset values
+    int16_t dataOffMul = 0;
+    int16_t dataOffAdd = 0;
+    if (packIndex < dac_vPacks_Count)
+    {
+      dataOffMul = DAC_VOLTPACKS;
+      dataOffAdd = 0;
+    }
+    else
+    {
+      dataOffMul = DAC_CONFPACKS;
+      dataOffAdd = dac_cPack_DAC0;
+    }
+
+    enum dac_packIndex dataStartPack = dataOffAdd + (packIndex % dataOffMul); // Determine starterpackage
     // Reconvert into datastructure
     for (int iPack = _inputStream.nPacks - 1; iPack >= 0; iPack--)
     {
-      uint8_t iDataInPack = (_inputStream.nPacks - 1) - iPack;
-      _DAC_DataIn.Packs[_inputStream.targetPack + iDataInPack].CmdByte = _inputStream.Packs[iPack].CmdByte;
+      enum dac_packIndex dataPack = dataStartPack + iPack * dataOffMul;
+      // uint8_t iDataInPack = (_inputStream.nPacks - 1) - iPack;
+      _DAC_DataIn.Packs[dataPack].CmdByte = _inputStream.Packs[iPack].CmdByte;
       // _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = swap_word(_inputStream.Packs[iPack].Data);
-      _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = _inputStream.Packs[iPack].Data;
+      _DAC_DataIn.Packs[dataPack].Data = _inputStream.Packs[iPack].Data;
     }
 
     _inputStream.nBytes = 0; // Everything fetched -> Clear received bytes for next round
@@ -438,14 +472,17 @@ void dac_queryPack(enum dac_packIndex packIndex)
   dac_fetchRxData(packIndex);
 }
 
-void dac_setChVoltage(enum dac_voltPackIndex channel, float voltage)
+void dac_setChVoltage(uint16_t channel, float voltage)
 {
+  if (channel >= DAC_NALLVOLTPACKS) // Out of range
+    return;
+
   DAC_Data_t *tx = dac_grabTxDataStruct();
 
-  tx->VoltPacks[channel].CmdByte = DAC_WRITE | ((channel % 8) + DAC_REG_ADDR_CH_OFFSET); // Keep channel in Range and add the ch-offset
-  tx->VoltPacks[channel].Data = dac_convertFloatTo16BitRange(voltage);
+  tx->VPacks[channel].CmdByte = DAC_WRITE | ((channel % DAC_VOLTPACKS) + DAC_REG_ADDR_CH_OFFSET); // Keep channel in Range and add the ch-offset
+  tx->VPacks[channel].Data = dac_convertFloatTo16BitRange(voltage);
 
-  dac_queryPack((enum dac_voltPackIndex)channel);
+  dac_queryPack(channel);
 }
 
 uint16_t dac_convertFloatTo16BitRange(float voltage)

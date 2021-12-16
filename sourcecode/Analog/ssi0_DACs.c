@@ -94,20 +94,20 @@ typedef struct ssi0_serializedDACData ssi0_dacData_t;
 /*******************************\
 | Local function declarations
 \*******************************/
-void ssi0_changeClkRate(enum ssi0_clkRate clkRate);
+void ssi0_changeClkRate(enum ssi_clkRate clkRate);
 void ssi0_enable(cBool state);
 
 /*******************************\
 | Global variables
 \*******************************/
-enum ssi0_clkRate _clkRate = ssi0_clkRate_1MHz; // Default 1 MHz
+enum ssi_clkRate _clkRate = ssi0_clkRate_1MHz; // Default 1 MHz
 ssi0_dacData_t _serializedOutput = {.Size = SSI0_BUFFERSIZE, .Filled = 0};
 ssi0_dacData_t _serializedInput = {.Size = SSI0_BUFFERSIZE, .Filled = 0};
 
 /*******************************\
 | Function definitons
 \*******************************/
-void ssi0_init(enum ssi0_clkRate clkRate)
+void ssi0_init(enum ssi_clkRate clkRate)
 {
   SYSCTL->RCGCSSI |= SYSCTL_RCGCSSI_SPI0;      // SPI0-CLK
   SYSCTL->RCGCGPIO |= SYSCTL_RCGCGPIO_GPIOA    // GPIOA-CLK
@@ -186,16 +186,18 @@ void ssi0_init(enum ssi0_clkRate clkRate)
   // ssi0_clrDACs(bFalse);    // Already off
   // ssi0_selectDACs(bFalse); // Already off
   // ssi0_ldacDACs(bFalse);   // Already disabled sychronous output
+
+  void ssi0_clearRxFIFO(void); // Be sure nothing undefined is stored in RxFIFO during the init-process
 }
 
-void ssi0_setClkRate(enum ssi0_clkRate clkRate)
+void ssi0_setClkRate(enum ssi_clkRate clkRate)
 {
   ssi0_enable(bOff);
   ssi0_changeClkRate(clkRate);
   ssi0_enable(bOn);
 }
 
-void ssi0_changeClkRate(enum ssi0_clkRate clkRate)
+void ssi0_changeClkRate(enum ssi_clkRate clkRate)
 {
   if (clkRate > PIOSC_MHZ)
     return;
@@ -205,15 +207,15 @@ void ssi0_changeClkRate(enum ssi0_clkRate clkRate)
 
   switch (clkRate)
   {
-  case ssi0_clkRate_125kHz:
+  case ssi_clkRate_125kHz:
     CPSR = 128;
     break;
 
-  case ssi0_clkRate_250kHz:
+  case ssi_clkRate_250kHz:
     CPSR = 64;
     break;
 
-  case ssi0_clkRate_500kHz:
+  case ssi_clkRate_500kHz:
     CPSR = 32;
     break;
 
@@ -229,15 +231,15 @@ void ssi0_changeClkRate(enum ssi0_clkRate clkRate)
   SSI0->CR0 |= SSI0_CR0_SCR(SCR);
 }
 
-enum ssi0_sendingStatus ssi0_SendindStatus(void)
+enum ssi_sendingStatus ssi0_SendindStatus(void)
 {
   if (SSI0->SR & SSI0_SR_BUSY)
     return ssi0_sending_busy;
 
-  return ssi0_sending_idle;
+  return ssi_sending_idle;
 }
 
-enum ssi0_FIFOStatus ssi0_RxFifoStatus(void)
+enum ssi_FIFOStatus ssi0_RxFifoStatus(void)
 {
   uint32_t SR = SSI0->SR;
 
@@ -248,25 +250,25 @@ enum ssi0_FIFOStatus ssi0_RxFifoStatus(void)
    */
 
   if (SR & SSI0_SR_RFF) // Check receive-FIFO Full
-    return ssi0_FIFO_Full;
+    return ssi_FIFO_Full;
   else if (SR & SSI0_SR_RNE) // Check receive FIFO not empty
-    return ssi0_FIFO_NeitherEmptyOrFull;
+    return ssi_FIFO_NeitherEmptyOrFull;
 
   // If both not fullfilled FIFO is empty
-  return ssi0_FIFO_Empty;
+  return ssi_FIFO_Empty;
 }
 
-enum ssi0_FIFOStatus ssi0_TxFifoStatus(void)
+enum ssi_FIFOStatus ssi0_TxFifoStatus(void)
 {
   uint32_t SR = SSI0->SR;
 
   if (SR & SSI0_SR_TFE) // Check transmit-FIFO empty
-    return ssi0_FIFO_Empty;
+    return ssi_FIFO_Empty;
   else if (SR & SSI0_SR_TNF) // Check transmit-FIFO not full
-    return ssi0_FIFO_NeitherEmptyOrFull;
+    return ssi_FIFO_NeitherEmptyOrFull;
 
   // If both not fullfilled FIFO is full
-  return ssi0_FIFO_Full;
+  return ssi_FIFO_Full;
 }
 
 void ssi0_enable(cBool state)
@@ -325,6 +327,7 @@ void ssi0_TxOnOff(cBool ioOnOff)
     GPIOA->DEN &= ~PA5_DACS_MOSI0;
 }
 
+/* ******** Shifted as common method to ssiCommon ******** */
 void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
 {
   // Has to be managed by the user!
@@ -332,7 +335,7 @@ void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
 
   for (int iByte = bytes_n - 1; iByte >= 0; iByte--) // Use underflow-trick to check "-1"
   {
-    while (ssi0_TxFifoStatus() == ssi0_FIFO_Full)
+    while (ssi0_TxFifoStatus() == ssi_FIFO_Full)
       ; // Wait when FIFO is full!
 
     SSI0->DR = serializedStream[iByte];
@@ -351,11 +354,22 @@ void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytesCopied, uint16_t nM
 
   for (; iCpyByte >= 0; iCpyByte--)
   {
-    if (ssi0_RxFifoStatus() == ssi0_FIFO_Empty)
+    if (ssi0_RxFifoStatus() == ssi_FIFO_Empty)
       break;
 
-    serializedStream[iCpyByte] = SSI0->DR;
+    serializedStream[iCpyByte] = (uint8_t)SSI0->DR;
   }
+
+  // Sometimes the RxFifo stores a byte more than expected. This shifts the entire response into wrong positions!
+  // Workaround: Clear RxFIFO after each read
+  ssi0_clearRxFIFO();
 
   *nBytesCopied = nMaxBytes - (iCpyByte + 1); // Set amount of copied bytes
 }
+
+void ssi0_clearRxFIFO(void)
+{
+  while (ssi0_RxFifoStatus() != ssi_FIFO_Empty) // Force clearing RxFIFO
+    SSI0->DR;
+}
+/* ------------------------------------------------------- */

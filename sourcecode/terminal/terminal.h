@@ -29,8 +29,8 @@
 #pragma endregion Commands
 
 #pragma region Common Messages
-#define TERMINAL_ACKNOWLEDGED "ack "
-#define TERMINAL_NOT_ACKNOWLEDGED "nak "
+#define TERMINAL_ACKNOWLEDGED "ack"
+#define TERMINAL_NOT_ACKNOWLEDGED "nak"
 #pragma endregion Common Messages
 
 #define CMD_ERR_HANDLE_INDEX CMD_HANDLE_INDEX
