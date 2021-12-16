@@ -16,7 +16,7 @@
 #define DAC_SSI_CLKRATE ssi0_clkRate_1MHz // Default-Clockrate
 
 // DAC Datastructure
-#define DAC_NDACS 1       // Amount of DACs in daisy-chain
+#define DAC_NDACS 2       // Amount of DACs in daisy-chain
 #define DAC_CONFPACKS 1   // Amoutn of config-packs
 #define DAC_VOLTPACKS 8   // Amount of outputvoltage-packs
 #define DAC_PACK_NBYTES 3 // Bytes per data-pack
@@ -35,7 +35,7 @@ enum dac_confPackackIndex
 {
   // Indicies for "ConfPacks"
   dac_confPack_DAC0,  // Pack-Offset for confPack-Array: DAC0
-                      // dac_confPack_DAC1,  // Pack-Offset for confPack-Array: DAC1
+  dac_confPack_DAC1,  // Pack-Offset for confPack-Array: DAC1
   dac_confPack_Count, // Amount of ConfPacks
 };
 
@@ -43,21 +43,21 @@ enum dac_voltPackIndex
 {
   // Indicies for "VoltPacks"
   dac_voltPack_CH0,   // Pack-Offset for voltPack-Array: Ch 0
-                      // dac_voltPack_CH8,   // Pack-Offset for voltPack-Array: Ch 8
+  dac_voltPack_CH8,   // Pack-Offset for voltPack-Array: Ch 8
   dac_voltPack_CH1,   // Pack-Offset for voltPack-Array: Ch 1
-                      // dac_voltPack_CH9,   // Pack-Offset for voltPack-Array: Ch 9
+  dac_voltPack_CH9,   // Pack-Offset for voltPack-Array: Ch 9
   dac_voltPack_CH2,   // Pack-Offset for voltPack-Array: Ch 2
-                      // dac_voltPack_CH10,  // Pack-Offset for voltPack-Array: Ch10
+  dac_voltPack_CH10,  // Pack-Offset for voltPack-Array: Ch10
   dac_voltPack_CH3,   // Pack-Offset for voltPack-Array: Ch 3
-                      // dac_voltPack_CH11,  // Pack-Offset for voltPack-Array: Ch11
+  dac_voltPack_CH11,  // Pack-Offset for voltPack-Array: Ch11
   dac_voltPack_CH4,   // Pack-Offset for voltPack-Array: Ch 4
-                      // dac_voltPack_CH12,  // Pack-Offset for voltPack-Array: Ch12
+  dac_voltPack_CH12,  // Pack-Offset for voltPack-Array: Ch12
   dac_voltPack_CH5,   // Pack-Offset for voltPack-Array: Ch 5
-                      // dac_voltPack_CH13,  // Pack-Offset for voltPack-Array: Ch13
+  dac_voltPack_CH13,  // Pack-Offset for voltPack-Array: Ch13
   dac_voltPack_CH6,   // Pack-Offset for voltPack-Array: Ch 6
-                      // dac_voltPack_CH14,  // Pack-Offset for voltPack-Array: Ch14
+  dac_voltPack_CH14,  // Pack-Offset for voltPack-Array: Ch14
   dac_voltPack_CH7,   // Pack-Offset for voltPack-Array: Ch 7
-                      // dac_voltPack_CH15,  // Pack-Offset for voltPack-Array: Ch15
+  dac_voltPack_CH15,  // Pack-Offset for voltPack-Array: Ch15
   dac_voltPack_Count, // Amount of VoltPacks
 };
 
@@ -65,23 +65,23 @@ enum dac_packIndex
 {
   // Indicies for "Packs"
   dac_pack_CH0,      // Pack-Offset for (All-)Pack-Array: Ch 0
-                     // dac_pack_CH8,      // Pack-Offset for (All-)Pack-Array: Ch 8
+  dac_pack_CH8,      // Pack-Offset for (All-)Pack-Array: Ch 8
   dac_pack_CH1,      // Pack-Offset for (All-)Pack-Array: Ch 1
-                     // dac_pack_CH9,      // Pack-Offset for (All-)Pack-Array: Ch 9
+  dac_pack_CH9,      // Pack-Offset for (All-)Pack-Array: Ch 9
   dac_pack_CH2,      // Pack-Offset for (All-)Pack-Array: Ch 2
-                     // dac_pack_CH10,     // Pack-Offset for (All-)Pack-Array: Ch10
+  dac_pack_CH10,     // Pack-Offset for (All-)Pack-Array: Ch10
   dac_pack_CH3,      // Pack-Offset for (All-)Pack-Array: Ch 3
-                     // dac_pack_CH11,     // Pack-Offset for (All-)Pack-Array: Ch11
+  dac_pack_CH11,     // Pack-Offset for (All-)Pack-Array: Ch11
   dac_pack_CH4,      // Pack-Offset for (All-)Pack-Array: Ch 4
-                     // dac_pack_CH12,     // Pack-Offset for (All-)Pack-Array: Ch12
+  dac_pack_CH12,     // Pack-Offset for (All-)Pack-Array: Ch12
   dac_pack_CH5,      // Pack-Offset for (All-)Pack-Array: Ch 5
-                     // dac_pack_CH13,     // Pack-Offset for (All-)Pack-Array: Ch13
+  dac_pack_CH13,     // Pack-Offset for (All-)Pack-Array: Ch13
   dac_pack_CH6,      // Pack-Offset for (All-)Pack-Array: Ch 6
-                     // dac_pack_CH14,     // Pack-Offset for (All-)Pack-Array: Ch14
+  dac_pack_CH14,     // Pack-Offset for (All-)Pack-Array: Ch14
   dac_pack_CH7,      // Pack-Offset for (All-)Pack-Array: Ch 7
-                     // dac_pack_CH15,     // Pack-Offset for (All-)Pack-Array: Ch15
+  dac_pack_CH15,     // Pack-Offset for (All-)Pack-Array: Ch15
   dac_pack_ctrlDAC0, // Pack-Offset for (All-)Pack-Array: DAC0
-                     // dac_pack_ctrlDAC1, // Pack-Offset for (All-)Pack-Array: DAC1
+  dac_pack_ctrlDAC1, // Pack-Offset for (All-)Pack-Array: DAC1
   dac_pack_Count,    // Amount of all Packs
 };
 
