@@ -1,5 +1,3 @@
-#ifndef SSI3_ADCs_H
-#define SSI3_ADCs_H
 /*******************************\
 | Includes
 \*******************************/
@@ -8,17 +6,24 @@
 /* Project specific */
 
 /*******************************\
-| Defines
+| Local Defines
 \*******************************/
-#define SSI0_BUFFERSIZE (DAC_NDACS * DAC_PACK_NBYTES) // Max-Transfer can be "DACs * Bytes per DAC" in Bytes
+#pragma region Hardwaredefines
+
+#pragma endregion Hardwaredefines
 
 /*******************************\
-| Enum/Struct/Union
+| Local Enum/Struct/Union
 \*******************************/
 
 /*******************************\
-| Function declaration
+| Local function declarations
 \*******************************/
-void ssi3_init_ADCs(void);
 
-#endif
+/*******************************\
+| Global variables
+\*******************************/
+
+/*******************************\
+| Function definitons
+\*******************************/
