@@ -6,25 +6,27 @@
 /* Std-Libs */
 
 /* Project specific */
+#include "common.h"
+#include "ssi3_ADCs.h"
 
 /*******************************\
 | Defines
 \*******************************/
-// DAC
-#define DAC_SSI_CLKRATE ssi0_clkRate_1MHz // Default-Clockrate
+// ADC
+#define ADC_SSI_CLKRATE ssi_clkRate_1MHz // Default-Clockrate
 
-// DAC Datastructure per daisy-chain
-#define ADC_ADCS 2        // Amount of DACs in daisy-chain
-#define ADC_CPACKS 1      // Amoutn of config-packs
-#define ADC_VPACKS 8      // Amount of outputvoltage-packs
-#define ADC_PACK_NBYTES 4 // Bytes per data-pack
+// DAC Datastructure
+#define ADC_NDACS 2       // Amount of DACs in daisy-chain
+#define ADC_CONFPACKS 1   // Amoutn of config-packs
+#define ADC_VOLTPACKS 8   // Amount of outputvoltage-packs
+#define ADC_PACK_NBYTES 3 // Bytes per data-pack
 
-#define DAC_BYTES_PER_SEND (ADC_ADCS * ADC_PACK_NBYTES)
+#define ADC_BYTES_PER_SEND (DAC_NDACS * DAC_PACK_NBYTES)
 
-#define DAC_NALLCONFPACKS (ADC_ADCS * ADC_CPACKS)
-#define DAC_NALLVOLTPACKS (ADC_ADCS * ADC_VPACKS)
-#define DAC_NALLPACKS (DAC_NALLCONFPACKS + DAC_NALLVOLTPACKS) // Amount of all packs
-#define DAC_ALLPACKS_NBYTES (DAC_NALLPACKS * ADC_PACK_NBYTES) // Amount of bytes for all data-packs. Be carefull when updating code for more than 2 daisychain-DACs. Struct not using this calculation to modify the entire struct!
+#define ADC_NALLCONFPACKS (DAC_NDACS * DAC_CONFPACKS)
+#define ADC_NALLVOLTPACKS (DAC_NDACS * DAC_VOLTPACKS)
+#define ADC_NALLPACKS (DAC_NALLCONFPACKS + DAC_NALLVOLTPACKS) // Amount of all packs
+#define ADC_ALLPACKS_NBYTES (DAC_NALLPACKS * DAC_PACK_NBYTES) // Amount of bytes for all data-packs. Be carefull when updating code for more than 2 daisychain-DACs. Struct not using this calculation to modify the entire struct!
 /*******************************\
 | Enum/Struct/Union
 \*******************************/
@@ -32,5 +34,18 @@
 /*******************************\
 | Function declaration
 \*******************************/
+void adcs_init(void);
+
+// cBool adc_chipselect(cBool csState);        // Nonblocking chipselect
+// void adc_chipselectBlocking(cBool csState); // Blocking core until chipselect can be done
+
+// DAC_Data_t *adc_grabRxDataStruct(void); // Return the Rx-Datastructure
+// DAC_Data_t *adc_grabTxDataStruct(void); // Return the Tx-Datastructure
+
+// void adc_queryPack(enum dac_packIndex packIndex);
+
+// void adc_setChVoltage(uint16_t channel, float voltage);
+
+// void testvalues(void);
 
 #endif

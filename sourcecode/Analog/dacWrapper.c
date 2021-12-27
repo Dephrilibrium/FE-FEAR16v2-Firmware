@@ -182,12 +182,12 @@ void dacs_init(void)
 void dac_wipeDACData(void)
 {
   /* Wipe structure */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+  // #pragma GCC diagnostic push
+  // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 
   dac_setCPacks(0, 0);
   dac_setVPacks(0, 0);
-#pragma GCC diagnostic pop
+  // #pragma GCC diagnostic pop
 }
 
 void dac_setCPacks(uint8_t cmdByte, uint16_t dataWord)
@@ -398,7 +398,7 @@ void dac_fetchRxData(enum dac_packIndex packIndex)
     // Receive into input-Buffer
     // HINT! Debugger reads out SSI0->DR (removes values from FIFO!)
     while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
-      ssi0_receive(_inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
+      ssi_receive(SSI0, _inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
 
     // Determine package depending offset values
     int16_t dataOffMul = 0;
@@ -443,7 +443,7 @@ DAC_Data_t *dac_grabTxDataStruct(void)
 
 cBool dac_chipselect(cBool csState)
 {
-  if (ssi0_SendindStatus() == ssi0_sending_busy)
+  if (ssi_SendindStatus(SSI0) == ssi_sending_busy)
     return bFalse; // Busy, nothin happened!
 
   ssi0_selectDACs(csState); // Chipselect the DACs
@@ -463,8 +463,8 @@ void dac_queryPack(enum dac_packIndex packIndex)
 
   // Send current; receive previous
   dac_chipselectBlocking(bTrue);
-  ssi0_transmit(_outputStream.SerializedStream, _outputStream.nBytes);
-  while (ssi0_SendindStatus() == ssi0_sending_busy)
+  ssi_transmit(SSI0, _outputStream.SerializedStream, _outputStream.nBytes);
+  while (ssi_SendindStatus(SSI0) == ssi_sending_busy)
     ; // Wait for fully transmitted
   dac_chipselectBlocking(bFalse);
 
@@ -515,7 +515,7 @@ uint16_t dac_convertFloatTo16BitRange(float voltage)
 
 // cBool dac_RxListen(cBool listenState)
 // {
-//   if (ssi0_SendindStatus() == ssi0_sending_busy)
+//   if (ssi0_SendindStatus() == ssi_sending_busy)
 //     return bFalse; // Busy, nothin happened!
 
 //   ssi0_RxOnOff(listenState);

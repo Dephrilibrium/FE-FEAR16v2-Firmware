@@ -6,6 +6,8 @@
 /* Std-Libs */
 
 /* Project specific */
+#include "adcWrapper.h"
+#include "ssiCommon.h"
 
 /*******************************\
 | Defines
@@ -19,6 +21,21 @@
 /*******************************\
 | Function declaration
 \*******************************/
-void ssi3_init_ADCs(void);
+void ssi3_init(enum ssi_clkRate clkRate);
+void ssi3_setClkRate(enum ssi_clkRate clkRate);
 
+// enum ssi_sendingStatus ssi0_SendindStatus(void);
+// enum ssi_FIFOStatus ssi0_RxFifoStatus(void);
+// enum ssi_FIFOStatus ssi0_TxFifoStatus(void);
+
+// void ssi0_clrDACs(cBool state);   // Turns output '0' or '1'
+// void ssi0_rstDACs(cBool state);   // Turns output '0' or '1'
+// void ssi0_ldacDACs(cBool state);  // Turns output '0' or '1';
+// void ssi0_RxOnOff(cBool ioOnOff); // Complete Dis- or Enables the IO
+// void ssi0_TxOnOff(cBool ioOnOff); // Complete Dis- or Enables the IO
+
+// void ssi0_selectDACs(cBool state);
+// void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n);
+// void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
+// void ssi0_clearRxFIFO(void);
 #endif

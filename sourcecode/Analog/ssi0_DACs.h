@@ -25,9 +25,9 @@
 void ssi0_init(enum ssi_clkRate clkRate);
 void ssi0_setClkRate(enum ssi_clkRate clkRate);
 
-enum ssi_sendingStatus ssi0_SendindStatus(void);
-enum ssi_FIFOStatus ssi0_RxFifoStatus(void);
-enum ssi_FIFOStatus ssi0_TxFifoStatus(void);
+// enum ssi_sendingStatus ssi0_SendindStatus(void);
+// enum ssi_FIFOStatus ssi0_RxFifoStatus(void);
+// enum ssi_FIFOStatus ssi0_TxFifoStatus(void);
 
 void ssi0_clrDACs(cBool state);   // Turns output '0' or '1'
 void ssi0_rstDACs(cBool state);   // Turns output '0' or '1'

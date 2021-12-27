@@ -9,6 +9,7 @@
 #include "terminal.h"
 #include "ssi0_DACs.h"
 #include "dacWrapper.h"
+#include "adcWrapper.h"
 #include "preciseTime.h"
 
 /*******************************\
@@ -34,7 +35,8 @@ int main(void)
     sys_clk_set(); // Set 80MHz
     pTime_init(pTime_tickbase_10us);
     terminal_init();
-    dacs_init();
+    // dacs_init();
+    adcs_init();
 
     while (1)
     {

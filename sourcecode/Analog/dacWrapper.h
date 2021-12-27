@@ -13,7 +13,7 @@
 | Defines
 \*******************************/
 // DAC
-#define DAC_SSI_CLKRATE ssi0_clkRate_1MHz // Default-Clockrate
+#define DAC_SSI_CLKRATE ssi_clkRate_1MHz // Default-Clockrate
 
 // DAC Datastructure
 #define DAC_NDACS 2       // Amount of DACs in daisy-chain
