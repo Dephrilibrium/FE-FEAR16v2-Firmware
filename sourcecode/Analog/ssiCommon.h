@@ -40,6 +40,7 @@ enum ssi_FIFOStatus
 /*******************************\
 | Function declaration
 \*******************************/
+void ssi_enable(SSI0_Type *ssi, cBool state);
 void ssi_changeClkRate(SSI0_Type *ssi, enum ssi_clkRate clkRate);
 
 enum ssi_sendingStatus ssi_SendindStatus(SSI0_Type *ssi);

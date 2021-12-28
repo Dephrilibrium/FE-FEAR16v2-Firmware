@@ -8,6 +8,7 @@
 /* Project specific */
 #include "common.h"
 #include "dacWrapper.h"
+#include "ssi0_DACs.h"
 #include "preciseTime.h"
 #include "swap.h"
 
@@ -239,7 +240,7 @@ void dac_setupSequence(void)
   uint8_t cmdByte = 0;
   uint16_t dataWord = 0;
 
-  pTime_wait(200); // POR needs 1ms to "boot" up; Wait >1ms
+  pTime_wait(2000); // POR needs 1ms to "boot" up; Wait >1ms
 
   // // Soft-Reset
   // cmdByte = DAC_WRITE | DAC_REG_ADDR_TRIGGER;

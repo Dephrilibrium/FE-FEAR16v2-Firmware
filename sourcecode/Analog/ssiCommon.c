@@ -91,6 +91,14 @@
 /*******************************\
 | Function definitons
 \*******************************/
+void ssi_enable(SSI0_Type *ssi, cBool state)
+{
+    if (state == bTrue)
+        ssi->CR1 |= SSI_CR1_SSE; // Enable SSI
+    else
+        ssi->CR1 &= ~SSI_CR1_SSE; // Disable SSI
+}
+
 void ssi_changeClkRate(SSI0_Type *ssi, enum ssi_clkRate clkRate)
 {
     if (clkRate > PIOSC_MHZ)

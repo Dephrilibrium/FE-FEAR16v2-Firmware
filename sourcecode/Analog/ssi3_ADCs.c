@@ -38,9 +38,9 @@
 #define PE5_UDRPADC_BUSY2 BIT(5)  // Busy second Daisy-chain
 
 #define GPIO_PCTL_CLEAR(x) OPTION(0xf, x * 4)       // Each bitfield has 4 bits
-#define GPIOD_PCTL_PD0_SSI3CLK OPTION(0x02, 0 * 4)  // PCTL for PA2 = SPI0-CLK
-#define GPIOD_PCTL_PD2_SSI3MISO OPTION(0x02, 2 * 4) // PCTL for PA2 = SPI0-MISO
-#define GPIOD_PCTL_PD3_SSI3MOSI OPTION(0x02, 3 * 4) // PCTL for PA2 = SPI0-MOSI
+#define GPIOD_PCTL_PD0_SSI3CLK OPTION(0x01, 0 * 4)  // PCTL for PA2 = SSI3-CLK
+#define GPIOD_PCTL_PD2_SSI3MISO OPTION(0x01, 2 * 4) // PCTL for PA2 = SSI3-MISO
+#define GPIOD_PCTL_PD3_SSI3MOSI OPTION(0x01, 3 * 4) // PCTL for PA2 = SSI3-MOSI
 
 /* SPI0 */
 #define SSI_CR1_SSE BIT(1)            // SSI Enable
@@ -80,7 +80,7 @@
 | Local function declarations
 \*******************************/
 // void ssi3_changeClkRate(enum ssi_clkRate clkRate); // Now in ssiCommon
-void ssi3_enable(cBool state);
+// void ssi3_enable(cBool state);
 
 /*******************************\
 | Global variables
@@ -102,9 +102,6 @@ void ssi3_init(enum ssi_clkRate clkRate)
 
     // IOs
     // Unlock pins
-    GPIOC->LOCK = 0x4C4F434B; // Unlock CR
-    GPIOC->CR = 0xFF;         // Unlock all pins
-
     GPIOC->LOCK = 0x4C4F434B; // Unlock CR
     GPIOC->CR = 0xFF;         // Unlock all pins
 
@@ -155,10 +152,10 @@ void ssi3_init(enum ssi_clkRate clkRate)
 
     // Voltagedrop-ADC
     GPIOD->PCTL &= ~(GPIO_PCTL_CLEAR(1));   // Clear PD1 (~CS)
-    GPIOE->PCTL &= ~(GPIO_PCTL_CLEAR(1)     // Clear PC4 (~Rst)
-                     | GPIO_PCTL_CLEAR(2)   // Clear PC5 (Start measurement)
-                     | GPIO_PCTL_CLEAR(4)   // Clear PC6 (Busy ADC1)
-                     | GPIO_PCTL_CLEAR(5)); // Clear PC7 (Busy ADC2)
+    GPIOE->PCTL &= ~(GPIO_PCTL_CLEAR(1)     // Clear PE1 (~Rst)
+                     | GPIO_PCTL_CLEAR(2)   // Clear PE2 (Start measurement)
+                     | GPIO_PCTL_CLEAR(4)   // Clear PE4 (Busy ADC1)
+                     | GPIO_PCTL_CLEAR(5)); // Clear PE5 (Busy ADC2)
 
     // Make output where necessary
     // Currentflow-ADCs
@@ -168,7 +165,7 @@ void ssi3_init(enum ssi_clkRate clkRate)
 
     // Voltagedrop-ADCs
     GPIOD->DIR |= PD1_UDRPADC_CS;       // ~CS
-    GPIOC->DIR |= PE1_UDRPADC_RST       // ~RST
+    GPIOE->DIR |= PE1_UDRPADC_RST       // ~RST
                   | PE2_UDRPADC_CONVST; // Star meas
 
     // IO Enable
@@ -192,38 +189,41 @@ void ssi3_init(enum ssi_clkRate clkRate)
                   | PE5_UDRPADC_BUSY2; // Busy UDRP-ADC2
 
     // Prepare DAC for SSI0-Init
-    // ssi0_rstDACs(bTrue);     // Set DAC to reset while init ssi0
-    // ssi0_ldacDACs(bFalse);   // No synchrone output by default
-    // ssi0_selectDACs(bFalse); // Deselect DACs
-    // ssi0_clrDACs(bFalse);    // Take back output clear
+    ssi3_rstADCs(adcChain_CF, bTrue);       // Set ADC-reset while init ssi3
+    ssi3_rstADCs(adcChain_UDrp, bTrue);     // Set ADC-reset while init ssi3
+    ssi3_selectADCs(adcChain_CF, bFalse);   // Deselect ADCs
+    ssi3_selectADCs(adcChain_UDrp, bFalse); // Deselect ADCs
+    ssi3_convADCs(adcChain_CF, bFalse);     // Stop accidentially conversion
+    ssi3_convADCs(adcChain_UDrp, bFalse);   // Stop accidentially conversion
 
-    // // SPI0
-    // ssi0_enable(bOff);        // Ensure SSI0 is off
-    // SSI0->CR1 &= SSI0_CR_MS;  // Make SSI0 Master
-    // SSI0->CC = SSI0_CC_PIOSC; // Use PIOSC (16MHz)
-    // ssi0_setClkRate(clkRate);
-    // SSI0->CR0 |= SSI0_CR0_DATASIZE_8  // 8-bit data
-    //              | SSI0_CR0_FREESCALE // No SPI format
-    //              //  | SSI0_CR0_SPO;      // Clock Polarity high
-    //              | SSI0_CR0_SPH; // Take Data on second clock edge
-    // SSI0->CR0 &= ~SSI0_CR0_SPO;  // Clock Polarity low
-    // ssi0_enable(bOn);
+    // SPI0
+    ssi_enable(SSI3, bOff);  // Ensure SSI0 is off
+    SSI3->CR1 &= SSI_CR_MS;  // Make SSI0 Master
+    SSI3->CC = SSI_CC_PIOSC; // Use PIOSC (16MHz)
+    ssi_changeClkRate(SSI3, clkRate);
+    SSI3->CR0 |= SSI_CR0_DATASIZE_8  // 8-bit data
+                 | SSI_CR0_FREESCALE // No SPI format
+                 //  | SSI0_CR0_SPO;      // Clock Polarity high
+                 | SSI_CR0_SPH; // Take Data on second clock edge
+    SSI3->CR0 &= ~SSI_CR0_SPO;  // Clock Polarity low
+    ssi_enable(SSI3, bOn);
 
-    // // Prepare DAC for regular use
-    // ssi0_rstDACs(bFalse); // Stop resetting DAC
-    // // ssi0_clrDACs(bFalse);    // Already off
-    // // ssi0_selectDACs(bFalse); // Already off
-    // // ssi0_ldacDACs(bFalse);   // Already disabled sychronous output
+    // Prepare DAC for regular use
+    ssi3_rstADCs(adcChain_CF, bFalse);   // Set ADC-reset while init ssi3
+    ssi3_rstADCs(adcChain_UDrp, bFalse); // Set ADC-reset while init ssi3
+    // ssi0_clrDACs(bFalse);    // Already off
+    // ssi0_selectDACs(bFalse); // Already off
+    // ssi0_ldacDACs(bFalse);   // Already disabled sychronous output
 
     // ssi0_clearRxFIFO(); // Be sure nothing undefined is stored in RxFIFO during the init-process
 }
 
 void ssi3_setClkRate(enum ssi_clkRate clkRate)
 {
-    ssi3_enable(bOff);
+    ssi_enable(SSI3, bOff);
     ssi_changeClkRate(SSI3, clkRate);
     _ssi3_clkRate = clkRate;
-    ssi3_enable(bOn);
+    ssi_enable(SSI3, bOn);
 }
 
 // void ssi3_changeClkRate(enum ssi_clkRate clkRate)
@@ -260,6 +260,104 @@ void ssi3_setClkRate(enum ssi_clkRate clkRate)
 //     SSI3->CR0 |= SSI3_CR0_SCR(SCR);
 // }
 
-void ssi3_enable(cBool state)
+// void ssi3_enable(cBool state)
+// {
+//     if (state == bTrue)
+//         SSI3->CR1 |= SSI_CR1_SSE; // Enable SSI
+//     else
+//         SSI3->CR1 &= ~SSI_CR1_SSE; // Disable SSI
+// }
+
+void ssi3_selectADCs(enum adcChain chain, cBool state)
 {
+    switch (chain)
+    {
+    case adcChain_CF:
+        if (state)
+            GPIOF->DATA &= ~PF3_CFADC_CS;
+        else
+            GPIOF->DATA |= PF3_CFADC_CS;
+        break;
+
+    case adcChain_UDrp:
+        if (state)
+            GPIOD->DATA &= ~PD1_UDRPADC_CS;
+        else
+            GPIOD->DATA |= PD1_UDRPADC_CS;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void ssi3_rstADCs(enum adcChain chain, cBool state)
+{
+    switch (chain)
+    {
+    case adcChain_CF:
+        if (state)
+            GPIOC->DATA &= ~PC4_CFADC_RST;
+        else
+            GPIOC->DATA |= PC4_CFADC_RST;
+        break;
+
+    case adcChain_UDrp:
+        if (state)
+            GPIOE->DATA &= ~PE1_UDRPADC_RST;
+        else
+            GPIOE->DATA |= PE1_UDRPADC_RST;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void ssi3_convADCs(enum adcChain chain, cBool state)
+{
+    switch (chain)
+    {
+    case adcChain_CF:
+        if (state)
+            GPIOC->DATA |= PC5_CFADC_CONVST;
+        else
+            GPIOC->DATA &= ~PC5_CFADC_CONVST;
+        break;
+
+    case adcChain_UDrp:
+        if (state)
+            GPIOE->DATA |= PE2_UDRPADC_CONVST;
+        else
+            GPIOE->DATA &= ~PE2_UDRPADC_CONVST;
+        break;
+
+    default:
+        break;
+    }
+}
+
+cBool ssi3_ADCsBusy(enum adcChain chain)
+{
+    uint32_t status;
+    switch (chain)
+    {
+    case adcChain_CF:
+        status = GPIOC->DATA;
+        status &= (PC6_CFADC_BUSY1 | PC7_CFADC_BUSY2);
+        break;
+
+    case adcChain_UDrp:
+        status = GPIOE->DATA;
+        status &= (PE4_UDRPADC_BUSY1 | PE5_UDRPADC_BUSY2);
+        break;
+
+    default:
+        return bFalse;
+    }
+
+    if (status)
+        return bTrue;
+
+    return bFalse; // Securityline to avoid a compilerwarning
 }

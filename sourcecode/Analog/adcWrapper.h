@@ -7,7 +7,7 @@
 
 /* Project specific */
 #include "common.h"
-#include "ssi3_ADCs.h"
+// #include "ssi3_ADCs.h"
 
 /*******************************\
 | Defines
@@ -30,14 +30,19 @@
 /*******************************\
 | Enum/Struct/Union
 \*******************************/
+enum adcChain
+{
+    adcChain_CF = 0,
+    adcChain_UDrp,
+};
 
 /*******************************\
 | Function declaration
 \*******************************/
 void adcs_init(void);
 
-// cBool adc_chipselect(cBool csState);        // Nonblocking chipselect
-// void adc_chipselectBlocking(cBool csState); // Blocking core until chipselect can be done
+cBool adc_chipselect(enum adcChain chain, cBool csState);        // Nonblocking chipselect
+void adc_chipselectBlocking(enum adcChain chain, cBool csState); // Blocking core until chipselect can be done
 
 // DAC_Data_t *adc_grabRxDataStruct(void); // Return the Rx-Datastructure
 // DAC_Data_t *adc_grabTxDataStruct(void); // Return the Tx-Datastructure

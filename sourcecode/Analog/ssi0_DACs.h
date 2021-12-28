@@ -1,5 +1,5 @@
-#ifndef SSI0_DACs_H
-#define SSI0_DACs_H
+#ifndef SSI0_DACS_H
+#define SSI0_DACS_H
 /*******************************\
 | Includes
 \*******************************/

@@ -96,7 +96,7 @@ typedef struct ssi0_serializedDACData ssi0_dacData_t;
 | Local function declarations
 \*******************************/
 // void ssi0_changeClkRate(enum ssi_clkRate clkRate); // Now in ssiCommon
-void ssi0_enable(cBool state);
+// void ssi0_enable(cBool state);
 
 /*******************************\
 | Global variables
@@ -171,7 +171,7 @@ void ssi0_init(enum ssi_clkRate clkRate)
   ssi0_clrDACs(bFalse);    // Take back output clear
 
   // SPI0
-  ssi0_enable(bOff);        // Ensure SSI0 is off
+  ssi_enable(SSI0, bOff);   // Ensure SSI0 is off
   SSI0->CR1 &= SSI0_CR_MS;  // Make SSI0 Master
   SSI0->CC = SSI0_CC_PIOSC; // Use PIOSC (16MHz)
   ssi0_setClkRate(clkRate);
@@ -180,7 +180,7 @@ void ssi0_init(enum ssi_clkRate clkRate)
                //  | SSI0_CR0_SPO;      // Clock Polarity high
                | SSI0_CR0_SPH; // Take Data on second clock edge
   SSI0->CR0 &= ~SSI0_CR0_SPO;  // Clock Polarity low
-  ssi0_enable(bOn);
+  ssi_enable(SSI0, bOn);
 
   // Prepare DAC for regular use
   ssi0_rstDACs(bFalse); // Stop resetting DAC
@@ -193,11 +193,10 @@ void ssi0_init(enum ssi_clkRate clkRate)
 
 void ssi0_setClkRate(enum ssi_clkRate clkRate)
 {
-  ssi0_enable(bOff);
-  ssi_changeClkRate(SSI0, clkRate);
+  ssi_enable(SSI0, bOff);
   ssi_changeClkRate(SSI0, clkRate);
   _ssi0_clkRate = clkRate;
-  ssi0_enable(bOn);
+  ssi_enable(SSI0, bOn);
 }
 
 // void ssi0_changeClkRate(enum ssi_clkRate clkRate)
@@ -274,13 +273,13 @@ void ssi0_setClkRate(enum ssi_clkRate clkRate)
 //   return ssi_FIFO_Full;
 // }
 
-void ssi0_enable(cBool state)
-{
-  if (state == bTrue)
-    SSI0->CR1 |= SSI0_CR1_SSE; // Enable SSI
-  else
-    SSI0->CR1 &= ~SSI0_CR1_SSE; // Disable SSI
-}
+// void ssi0_enable(cBool state)
+// {
+//   if (state == bTrue)
+//     SSI0->CR1 |= SSI_CR1_SSE; // Enable SSI
+//   else
+//     SSI0->CR1 &= ~SSI_CR1_SSE; // Disable SSI
+// }
 
 void ssi0_selectDACs(cBool state)
 {

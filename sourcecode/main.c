@@ -33,7 +33,7 @@ int main(void)
 
     // Inits
     sys_clk_set(); // Set 80MHz
-    pTime_init(pTime_tickbase_10us);
+    pTime_init(pTime_tickbase_1us);
     terminal_init();
     // dacs_init();
     adcs_init();

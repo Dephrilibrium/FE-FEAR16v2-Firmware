@@ -8,6 +8,7 @@
 /* Project specific */
 #include "common.h"
 #include "adcWrapper.h"
+#include "ssi3_ADCs.h"
 #include "preciseTime.h"
 #include "swap.h"
 
@@ -48,6 +49,8 @@ void adc_setupSequence(void);
 \*******************************/
 void adcs_init(void)
 {
+    uint8_t stream[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+
     ssi3_init(ADC_SSI_CLKRATE);
     adc_wipeADCData();
     adc_setupSequence();
@@ -66,4 +69,23 @@ void adc_wipeADCData(void)
 
 void adc_setupSequence(void)
 {
+    uint8_t cmdByte = 0;
+    uint16_t dataWord = 0;
+
+    pTime_wait(11000); // POR needs >10ms
+}
+
+cBool adc_chipselect(enum adcChain chain, cBool csState)
+{
+    if (ssi_SendindStatus(SSI3) == ssi_sending_busy)
+        return bFalse; // Busy, nothin happened!
+
+    ssi3_selectADCs(chain, csState);
+    return bTrue;
+}
+
+void adc_chipselectBlocking(enum adcChain chain, cBool csState)
+{
+    while (adc_chipselect(chain, csState) == bFalse)
+        ; // Wait until chip-select was done correctly
 }
