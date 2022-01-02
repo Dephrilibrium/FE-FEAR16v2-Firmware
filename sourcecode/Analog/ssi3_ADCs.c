@@ -203,8 +203,9 @@ void ssi3_init(enum ssi_clkRate clkRate)
     ssi_changeClkRate(SSI3, clkRate); // Just change! Do not use set-method!
     ssi_changeDataSize(SSI3, ssiDataSize_16bit);
     SSI3->CR0 |= SSI_CR0_FREESCALE // No SPI format
-                 | SSI_CR0_SPO     // Clock Polarity: Idle = high
-                 | SSI_CR0_SPH;    // Take Data on second clock edge
+                                   //  | SSI_CR0_SPH    // Take Data on second clock edge
+                 | SSI_CR0_SPO;    // Clock Polarity: Idle = high
+    SSI3->CR0 &= ~SSI_CR0_SPH;     // Take data on first clock-edge!
     // SSI3->CR0 &= ~SSI_CR0_SPO;     // Clock Polarity low
     ssi_enable(SSI3, bOn);
 

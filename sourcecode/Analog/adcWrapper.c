@@ -111,10 +111,10 @@ void adc_setupSequence(void)
     //                                                        //   | ADC_CONF_WRITE_EN                // Update register contents
     //     ;
 
-    basicConfigDWORD =                       // ADC_CONF_REDAC(1023); // VRef = 2.5V
+    basicConfigDWORD = ADC_CONF_REDAC(1023); // VRef = 2.5V
                                              // basicConfigDWORD |= ADC_CONF_VREF_3V;    // Do not extend internal Reference
                                              // basicConfigDWORD |= ADC_CONF_REFBUF_OFF; // Disable internal VRef Buffer
-        basicConfigDWORD |= ADC_CONF_REF_EN; // Enable internal VRef
+    basicConfigDWORD |= ADC_CONF_REF_EN;     // Enable internal VRef
     // basicConfigDWORD |= ADC_CONF_PD_D;       // Powerdown Channels
     // basicConfigDWORD |= ADC_CONF_RANGE_D;    // Range 2 * VRef
     // basicConfigDWORD |= ADC_CONF_PD_C;       // Powerdown Channels
@@ -143,11 +143,21 @@ void adc_setupSequence(void)
     double vVals[16][20] = {0};
     uint16_t wordCnt = 0;
 
-    sendConfig = basicConfigDWORD | ADC_CONF_REDAC(1023) | ADC_CONF_WRITE_EN; //| ADC_CONF_READ_EN;
+    sendConfig = basicConfigDWORD | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN;
     adc_chipselectBlocking(adcChain_CF, bOn);
     ssi_transmit16Bit(SSI3, pSendConfig, 2);
     adc_chipselectBlocking(adcChain_CF, bOff);
-    ssi_clearRxFIFO(SSI3);
+    ssi_receive16Bit(SSI3, response, &wordCnt, 2);
+
+    uint32_t uiResponse = 0;
+    while (!uiResponse)
+    {
+        adc_chipselectBlocking(adcChain_CF, bOn);
+        ssi_transmit16Bit(SSI3, blank, 2);
+        adc_chipselectBlocking(adcChain_CF, bOff);
+        ssi_receive16Bit(SSI3, response, &wordCnt, 2);
+        uiResponse = *((uint32_t *)&response[0]);
+    }
 
     pTime_wait(5);
 
@@ -165,8 +175,13 @@ void adc_setupSequence(void)
         ssi_receive16Bit(SSI3, (uint16_t *)&response, &wordCnt, 8);
         ssi_clearRxFIFO(SSI3);
 
+        double dVal = 0.0;
         for (int cVal = 0; cVal < 16; cVal++)
-            vVals[cVal][mVal] = response[cVal] * fac;
+        {
+            dVal = response[cVal] * fac;
+            vVals[cVal][mVal] = dVal;
+            dVal = 0.0;
+        }
         wordCnt = 0;
     }
 }
