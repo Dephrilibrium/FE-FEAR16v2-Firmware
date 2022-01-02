@@ -48,19 +48,21 @@
 #define SSI_CC_SYSCTL OPTION(0x00, 0) // Make CoreClk to ClockSource (can depend on clock-settings!)
 #define SSI_CC_PIOSC OPTION(0x05, 0)  // Make PIOSC (Precise Internal Oscillator = 16MHz) to ClockSource
 #pragma region CR0 Datasize
-#define SSI_CR0_DATASIZE_4 OPTION(0x03, 0)  // 4-bit data
-#define SSI_CR0_DATASIZE_5 OPTION(0x04, 0)  // 5-bit data
-#define SSI_CR0_DATASIZE_6 OPTION(0x05, 0)  // 6-bit data
-#define SSI_CR0_DATASIZE_7 OPTION(0x06, 0)  // 7-bit data
-#define SSI_CR0_DATASIZE_8 OPTION(0x07, 0)  // 8-bit data
-#define SSI_CR0_DATASIZE_9 OPTION(0x08, 0)  // 9-bit data
-#define SSI_CR0_DATASIZE_10 OPTION(0x09, 0) // 10-bit data
-#define SSI_CR0_DATASIZE_11 OPTION(0x0A, 0) // 11-bit data
-#define SSI_CR0_DATASIZE_12 OPTION(0x0B, 0) // 12-bit data
-#define SSI_CR0_DATASIZE_13 OPTION(0x0C, 0) // 13-bit data
-#define SSI_CR0_DATASIZE_14 OPTION(0x0D, 0) // 14-bit data
-#define SSI_CR0_DATASIZE_15 OPTION(0x0E, 0) // 15-bit data
-#define SSI_CR0_DATASIZE_16 OPTION(0x0F, 0) // 16-bit data
+#define SSI_CR0_DATASIZE_CLR OPTION(0xF, 0) // Invers Clear-mask
+#define SSI_CR0_DATASIZE(x) OPTION(x, 0)    // Shifts given value from enum ssi_dataSize
+// #define SSI_CR0_DATASIZE_4 OPTION(0x3, 0)   // 4-bit data
+// #define SSI_CR0_DATASIZE_5 OPTION(0x4, 0)   // 5-bit data
+// #define SSI_CR0_DATASIZE_6 OPTION(0x5, 0)   // 6-bit data
+// #define SSI_CR0_DATASIZE_7 OPTION(0x6, 0)   // 7-bit data
+// #define SSI_CR0_DATASIZE_8 OPTION(0x7, 0)   // 8-bit data
+// #define SSI_CR0_DATASIZE_9 OPTION(0x8, 0)   // 9-bit data
+// #define SSI_CR0_DATASIZE_10 OPTION(0x9, 0)  // 10-bit data
+// #define SSI_CR0_DATASIZE_11 OPTION(0xA, 0)  // 11-bit data
+// #define SSI_CR0_DATASIZE_12 OPTION(0xB, 0)  // 12-bit data
+// #define SSI_CR0_DATASIZE_13 OPTION(0xC, 0)  // 13-bit data
+// #define SSI_CR0_DATASIZE_14 OPTION(0xD, 0)  // 14-bit data
+// #define SSI_CR0_DATASIZE_15 OPTION(0xE, 0)  // 15-bit data
+// #define SSI_CR0_DATASIZE_16 OPTION(0xF, 0)  // 16-bit data
 #pragma endregion CR0 Datasize
 #define SSI_CR0_FREESCALE OPTION(0x0, 4) // Freescale SPI
 #define SSI_CR0_SPO BIT(6)               // Clock idle polarity (0 = low; 1 = high)
@@ -132,6 +134,12 @@ void ssi_changeClkRate(SSI0_Type *ssi, enum ssi_clkRate clkRate)
     ssi->CR0 |= SSI_CR0_SCR(SCR);
 }
 
+void ssi_changeDataSize(SSI0_Type *ssi, enum ssiDataSize dSize)
+{
+    uint32_t cr0 = ssi->CR0 & ~(SSI_CR0_DATASIZE_CLR);
+    ssi->CR0 = cr0 | SSI_CR0_DATASIZE((uint8_t)dSize);
+}
+
 enum ssi_sendingStatus ssi_SendindStatus(SSI0_Type *ssi)
 {
     if (ssi->SR & SSI_SR_BUSY)
@@ -172,7 +180,14 @@ enum ssi_FIFOStatus ssi_TxFifoStatus(SSI0_Type *ssi)
     return ssi_FIFO_Full;
 }
 
-void ssi_transmit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t bytes_n)
+void ssi_clearRxFIFO(SSI0_Type *ssi)
+{
+    while (ssi_RxFifoStatus(ssi) != ssi_FIFO_Empty) // Force clearing RxFIFO
+        ssi->DR;
+}
+
+#pragma region 8 - Bit methods
+void ssi_transmit8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t bytes_n)
 {
     // Has to be managed by the user!
     // ssi0_selectDACs(bTrue); // Chip-Select
@@ -190,7 +205,7 @@ void ssi_transmit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t bytes_n)
     // ssi0_selectDACs(bFalse); // Chip-Deselect
 }
 
-void ssi_receive(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytesCopied, uint16_t nMaxBytes)
+void ssi_receive8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytesCopied, uint16_t nMaxBytes)
 {
     /* The received bytes comes in reversed order! */
 
@@ -210,9 +225,45 @@ void ssi_receive(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytesCopi
 
     *nBytesCopied = nMaxBytes - (iCpyByte + 1); // Set amount of copied bytes
 }
+#pragma endregion 8 - Bit methods
 
-void ssi_clearRxFIFO(SSI0_Type *ssi)
+#pragma region 16 - Bit methods
+void ssi_transmit16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t words_n)
 {
-    while (ssi_RxFifoStatus(ssi) != ssi_FIFO_Empty) // Force clearing RxFIFO
-        ssi->DR;
+    // Has to be managed by the user!
+    // ssi0_selectDACs(bTrue); // Chip-Select
+
+    for (int iByte = words_n - 1; iByte >= 0; iByte--) // Use underflow-trick to check "-1"
+    {
+        while (ssi_TxFifoStatus(ssi) == ssi_FIFO_Full)
+            ; // Wait when FIFO is full!
+
+        ssi->DR = serializedStream[iByte];
+    }
+
+    // while (ssi0_SendindStatus() == ssi_sending_busy)
+    //   ;                      // Wait for send finished
+    // ssi0_selectDACs(bFalse); // Chip-Deselect
 }
+
+void ssi_receive16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t *nWordsCopied, uint16_t nMaxWords)
+{
+    /* The received bytes comes in reversed order! */
+
+    int iCpyWord = nMaxWords - 1; // CopyIndex for reversed order
+
+    for (; iCpyWord >= 0; iCpyWord--)
+    {
+        if (ssi_RxFifoStatus(ssi) == ssi_FIFO_Empty)
+            break;
+
+        serializedStream[iCpyWord] = (uint16_t)ssi->DR;
+    }
+
+    // Sometimes the RxFifo stores a byte more than expected. This shifts the entire response into wrong positions!
+    // Workaround: Clear RxFIFO after each read
+    ssi_clearRxFIFO(ssi);
+
+    *nWordsCopied = nMaxWords - (iCpyWord + 1); // Set amount of copied bytes
+}
+#pragma endregion 16 - Bit methods

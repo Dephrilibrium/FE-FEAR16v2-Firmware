@@ -164,8 +164,8 @@ uint16_t dac_convertFloatTo16BitRange(float voltage);
 \*******************************/
 DAC_Data_t _DAC_DataOut = {.nCPacks = DAC_NALLCONFPACKS, .nVPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
 DAC_Data_t _DAC_DataIn = {.nCPacks = DAC_NALLCONFPACKS, .nVPacks = DAC_NALLVOLTPACKS, .nPacks = DAC_NALLPACKS};
-ssiStream_t _outputStream = {.nPacks = DAC_NDACS, .nBytes = DAC_BYTES_PER_SEND, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1};
-ssiStream_t _inputStream = {.nPacks = DAC_NDACS, .nBytes = 0, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1, .nSize = DAC_NDACS * DAC_PACK_NBYTES};
+dac_ssiStream_t _outputStream = {.nPacks = DAC_NDACS, .nBytes = DAC_BYTES_PER_SEND, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1};
+dac_ssiStream_t _inputStream = {.nPacks = DAC_NDACS, .nBytes = 0, .nSize = DAC_BYTES_PER_SEND, .targetPack = -1, .nSize = DAC_NDACS * DAC_PACK_NBYTES};
 uint16_t _RxNBytesReceived = 0; // Have to be global to be able to "abort" a receive
 
 float _dacVoltSpan = 0; // Used to determine the DAC-register-value
@@ -399,7 +399,7 @@ void dac_fetchRxData(enum dac_packIndex packIndex)
     // Receive into input-Buffer
     // HINT! Debugger reads out SSI0->DR (removes values from FIFO!)
     while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
-      ssi_receive(SSI0, _inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
+      ssi_receive8Bit(SSI0, _inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
 
     // Determine package depending offset values
     int16_t dataOffMul = 0;
@@ -464,7 +464,7 @@ void dac_queryPack(enum dac_packIndex packIndex)
 
   // Send current; receive previous
   dac_chipselectBlocking(bTrue);
-  ssi_transmit(SSI0, _outputStream.SerializedStream, _outputStream.nBytes);
+  ssi_transmit8Bit(SSI0, _outputStream.SerializedStream, _outputStream.nBytes);
   while (ssi_SendindStatus(SSI0) == ssi_sending_busy)
     ; // Wait for fully transmitted
   dac_chipselectBlocking(bFalse);

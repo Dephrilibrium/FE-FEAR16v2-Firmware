@@ -47,21 +47,21 @@
 #define SSI_CR_MS BIT(2)              // Master (clear) / Slave (set)
 #define SSI_CC_SYSCTL OPTION(0x00, 0) // Make CoreClk to ClockSource (can depend on clock-settings!)
 #define SSI_CC_PIOSC OPTION(0x05, 0)  // Make PIOSC (Precise Internal Oscillator = 16MHz) to ClockSource
-#pragma region CR0 Datasize
-#define SSI_CR0_DATASIZE_4 OPTION(0x03, 0)  // 4-bit data
-#define SSI_CR0_DATASIZE_5 OPTION(0x04, 0)  // 5-bit data
-#define SSI_CR0_DATASIZE_6 OPTION(0x05, 0)  // 6-bit data
-#define SSI_CR0_DATASIZE_7 OPTION(0x06, 0)  // 7-bit data
-#define SSI_CR0_DATASIZE_8 OPTION(0x07, 0)  // 8-bit data
-#define SSI_CR0_DATASIZE_9 OPTION(0x08, 0)  // 9-bit data
-#define SSI_CR0_DATASIZE_10 OPTION(0x09, 0) // 10-bit data
-#define SSI_CR0_DATASIZE_11 OPTION(0x0A, 0) // 11-bit data
-#define SSI_CR0_DATASIZE_12 OPTION(0x0B, 0) // 12-bit data
-#define SSI_CR0_DATASIZE_13 OPTION(0x0C, 0) // 13-bit data
-#define SSI_CR0_DATASIZE_14 OPTION(0x0D, 0) // 14-bit data
-#define SSI_CR0_DATASIZE_15 OPTION(0x0E, 0) // 15-bit data
-#define SSI_CR0_DATASIZE_16 OPTION(0x0F, 0) // 16-bit data
-#pragma endregion CR0 Datasize
+// #pragma region CR0 Datasize
+// #define SSI_CR0_DATASIZE_4 OPTION(0x03, 0)  // 4-bit data
+// #define SSI_CR0_DATASIZE_5 OPTION(0x04, 0)  // 5-bit data
+// #define SSI_CR0_DATASIZE_6 OPTION(0x05, 0)  // 6-bit data
+// #define SSI_CR0_DATASIZE_7 OPTION(0x06, 0)  // 7-bit data
+// #define SSI_CR0_DATASIZE_8 OPTION(0x07, 0)  // 8-bit data
+// #define SSI_CR0_DATASIZE_9 OPTION(0x08, 0)  // 9-bit data
+// #define SSI_CR0_DATASIZE_10 OPTION(0x09, 0) // 10-bit data
+// #define SSI_CR0_DATASIZE_11 OPTION(0x0A, 0) // 11-bit data
+// #define SSI_CR0_DATASIZE_12 OPTION(0x0B, 0) // 12-bit data
+// #define SSI_CR0_DATASIZE_13 OPTION(0x0C, 0) // 13-bit data
+// #define SSI_CR0_DATASIZE_14 OPTION(0x0D, 0) // 14-bit data
+// #define SSI_CR0_DATASIZE_15 OPTION(0x0E, 0) // 15-bit data
+// #define SSI_CR0_DATASIZE_16 OPTION(0x0F, 0) // 16-bit data
+// #pragma endregion CR0 Datasize
 #define SSI_CR0_FREESCALE OPTION(0x0, 4) // Freescale SPI
 #define SSI_CR0_SPO BIT(6)               // Clock idle polarity (0 = low; 1 = high)
 #define SSI_CR0_SPH BIT(7)               // Data clock phase (0 = first clock edge; 1 = second clock edge)
@@ -197,15 +197,15 @@ void ssi3_init(enum ssi_clkRate clkRate)
     ssi3_convADCs(adcChain_UDrp, bFalse);   // Stop accidentially conversion
 
     // SPI0
-    ssi_enable(SSI3, bOff);  // Ensure SSI0 is off
-    SSI3->CR1 &= SSI_CR_MS;  // Make SSI0 Master
-    SSI3->CC = SSI_CC_PIOSC; // Use PIOSC (16MHz)
-    ssi_changeClkRate(SSI3, clkRate);
-    SSI3->CR0 |= SSI_CR0_DATASIZE_8  // 8-bit data
-                 | SSI_CR0_FREESCALE // No SPI format
-                 //  | SSI0_CR0_SPO;      // Clock Polarity high
-                 | SSI_CR0_SPH; // Take Data on second clock edge
-    SSI3->CR0 &= ~SSI_CR0_SPO;  // Clock Polarity low
+    ssi_enable(SSI3, bOff);           // Ensure SSI0 is off
+    SSI3->CR1 &= SSI_CR_MS;           // Make SSI0 Master
+    SSI3->CC = SSI_CC_PIOSC;          // Use PIOSC (16MHz)
+    ssi_changeClkRate(SSI3, clkRate); // Just change! Do not use set-method!
+    ssi_changeDataSize(SSI3, ssiDataSize_16bit);
+    SSI3->CR0 |= SSI_CR0_FREESCALE // No SPI format
+                 | SSI_CR0_SPO     // Clock Polarity: Idle = high
+                 | SSI_CR0_SPH;    // Take Data on second clock edge
+    // SSI3->CR0 &= ~SSI_CR0_SPO;     // Clock Polarity low
     ssi_enable(SSI3, bOn);
 
     // Prepare DAC for regular use
@@ -297,16 +297,16 @@ void ssi3_rstADCs(enum adcChain chain, cBool state)
     {
     case adcChain_CF:
         if (state)
-            GPIOC->DATA &= ~PC4_CFADC_RST;
-        else
             GPIOC->DATA |= PC4_CFADC_RST;
+        else
+            GPIOC->DATA &= ~PC4_CFADC_RST;
         break;
 
     case adcChain_UDrp:
         if (state)
-            GPIOE->DATA &= ~PE1_UDRPADC_RST;
-        else
             GPIOE->DATA |= PE1_UDRPADC_RST;
+        else
+            GPIOE->DATA &= ~PE1_UDRPADC_RST;
         break;
 
     default:
@@ -344,12 +344,12 @@ cBool ssi3_ADCsBusy(enum adcChain chain)
     {
     case adcChain_CF:
         status = GPIOC->DATA;
-        status &= (PC6_CFADC_BUSY1 | PC7_CFADC_BUSY2);
+        status &= (PC6_CFADC_BUSY1); // | PC7_CFADC_BUSY2);
         break;
 
     case adcChain_UDrp:
         status = GPIOE->DATA;
-        status &= (PE4_UDRPADC_BUSY1 | PE5_UDRPADC_BUSY2);
+        status &= (PE4_UDRPADC_BUSY1); // | PE5_UDRPADC_BUSY2);
         break;
 
     default:

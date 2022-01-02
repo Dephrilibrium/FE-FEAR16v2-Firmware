@@ -108,7 +108,7 @@ typedef struct
       DAC_StructuralDataPack_t Packs[DAC_NDACS];
     } __attribute__((packed));
   } __attribute__((packed)); // To be able to iterate through serializedStream it has to be packed
-} ssiStream_t;
+} dac_ssiStream_t;
 
 /*******************************\
 | Function declaration
