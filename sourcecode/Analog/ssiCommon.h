@@ -67,10 +67,10 @@ enum ssi_FIFOStatus ssi_TxFifoStatus(SSI0_Type *ssi);
 
 void ssi_clearRxFIFO(SSI0_Type *ssi);
 
-void ssi_transmit8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t bytes_n);
+void ssi_transmit8Bit(SSI0_Type *ssi, const uint8_t *serializedStream, uint16_t bytes_n);
 void ssi_receive8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
 
-void ssi_transmit16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t bytes_n);
+void ssi_transmit16Bit(SSI0_Type *ssi, const uint16_t *serializedStream, uint16_t bytes_n);
 void ssi_receive16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
 
 #endif

@@ -187,7 +187,7 @@ void ssi_clearRxFIFO(SSI0_Type *ssi)
 }
 
 #pragma region 8 - Bit methods
-void ssi_transmit8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t bytes_n)
+void ssi_transmit8Bit(SSI0_Type *ssi, const uint8_t *serializedStream, uint16_t bytes_n)
 {
     // Has to be managed by the user!
     // ssi0_selectDACs(bTrue); // Chip-Select
@@ -228,7 +228,7 @@ void ssi_receive8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytes
 #pragma endregion 8 - Bit methods
 
 #pragma region 16 - Bit methods
-void ssi_transmit16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t words_n)
+void ssi_transmit16Bit(SSI0_Type *ssi, const uint16_t *serializedStream, uint16_t words_n)
 {
     // Has to be managed by the user!
     // ssi0_selectDACs(bTrue); // Chip-Select

@@ -44,14 +44,43 @@
 /*******************************\
 | Local Enum/Struct/Union
 \*******************************/
+typedef struct
+{
+    const uint16_t nPacks;
+    const uint16_t nWords;
+
+    const uint32_t stdConf;
+    const uint16_t zeroStream[ADC_CPACKS_NALLWORDS];
+
+    struct
+    {
+        union
+        {
+            uint32_t confPacks[ADC_NALLCONFPACKS];
+            uint16_t confStream[ADC_CPACKS_NALLWORDS];
+        };
+        union // Currently not implemented
+        {
+            uint32_t responseConf;
+            uint16_t responseStream[ADC_CPACK_NWORDS];
+        };
+    } chains[ADC_NCHAINS];
+} adc_sendConf_t;
+
+typedef struct
+{
+    double targeRange;
+    double voltQuantum;
+} adc_voltRange_t;
 
 /*******************************\
 | Local function declarations
 \*******************************/
 void adc_wipeADCData(void);
 void adc_setupSequence(void);
-// void adc_setCPacks(uint8_t cmdByte, uint16_t dataWord);
-// void adc_setVPacks(uint8_t cmdByte, uint16_t dataWord);
+void adc_setCPacks(uint32_t config);
+// void adc_setVPacks(int16_t value);
+void adc_setVPacks(double value);
 // void adc_setToPacks(uint8_t cmdByte, uint16_t dataWord, ADC_StructuralDataPack_t *packCollection, uint8_t nPacks);
 
 // enum adc_packIndex adc_IndexInt2EnumPackIndex(uint16_t iPackIndex);
@@ -59,14 +88,42 @@ void adc_setupSequence(void);
 // void adc_prepareTxData(enum adc_packIndex packIndex);
 // void adc_fetchRxData(enum adc_packIndex packIndex);
 
-// uint16_t adc_selectVoltRange(uint16_t chRange);
-// uint16_t adc_convertFloatTo16BitRange(float voltage);
+// double adc_selectVoltRange(double voltRange); // Hardly to calculate -> Maybe a feature in future
+void adc_convertRaw2Double(enum adcChain chain);
 
 /*******************************\
 | Global variables
 \*******************************/
-// ADC_Data_t _ADC_DataOut = {.nCPacks = ADC_NALLCONFPACKS, .nVPacks = ADC_NALLVOLTPACKS, .nPacks = ADC_NALLPACKS};
-// ADC_Data_t _ADC_DataIn = {.nCPacks = ADC_NALLCONFPACKS, .nVPacks = ADC_NALLVOLTPACKS, .nPacks = ADC_NALLPACKS};
+adc_sendConf_t _configuration = {
+    .nPacks = ADC_NALLCONFPACKS,
+    .nWords = ADC_CPACKS_NALLWORDS,
+    .stdConf = ADC_CONF_REDAC(1023) // Scale VRef -> 2.5V
+                                    //   | ADC_CONF_VREF_3V     // Do not extend internal Reference
+                                    //   | ADC_CONF_REFBUF_OFF  // Disable internal VRef Buffer
+               | ADC_CONF_REF_EN    // Enable internal VRef
+                                    //   | ADC_CONF_PD_D        // Powerdown Channels
+                                    //   | ADC_CONF_RANGE_D     // Range 2 * VRef
+                                    //   | ADC_CONF_PD_C        // Powerdown Channels
+                                    //   | ADC_CONF_RANGE_C     // Range 2 * VRef
+                                    //   | ADC_CONF_PD_B        // Powerdown Channels
+                                    //   | ADC_CONF_RANGE_B     // Range 2 * VRef
+                                    //   | ADC_CONF_RANGE_A     // Range 2 * VRef
+                                    //   | ADC_CONF_NSTBY       // Powerdown Device
+                                    //   | ADC_CONF_BUSYPOL     // Busy-signal: lo-active
+                                    //   | ADC_CONF_BUSY_OR_INT // Use as Interrupt-signal
+                                    //   | ADC_CONF_CLKOUT_EN   // Enable clock-out (Pin 34)
+                                    //   | ADC_CONF_CLKSEL      // Use external conversion clock
+                                    //   | ADC_CONF_READ_EN     // Read config-register in the next 2 cycles!
+                                    //   | ADC_CONF_WRITE_EN   // Update register contents
+    ,
+    .zeroStream = {0},
+    .chains = {{{{0}}}}};
+adc_measurementValues_t _measVal = {.nChannels = ADC_NALLCHPACKS,
+                                    .nWords = ADC_CHANNELS_NALLWORDS,
+                                    .zeroStream = {0},
+                                    .chains = {{{0}}}};
+adc_voltRange_t _range = {.targeRange = ADC_POSITIVE_RANGE,
+                          .voltQuantum = ADC_POSITIVE_RANGE / ADC_POSITIVE_RESOLUTION};
 
 /*******************************\
 | Function definitons
@@ -74,7 +131,7 @@ void adc_setupSequence(void);
 void adcs_init(void)
 {
     ssi3_init(ADC_SSI_CLKRATE);
-    // adc_wipeADCData();
+    adc_wipeADCData();
     adc_setupSequence();
 }
 
@@ -83,107 +140,84 @@ void adc_wipeADCData(void)
     //       /* Wipe structure */
     // #pragma GCC diagnostic push
     // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-
-    // adc_setCPacks(0, 0);
-    // adc_setVPacks(0, 0);
+    adc_setCPacks(0);
+    adc_setVPacks(0);
     // #pragma GCC diagnostic pop
+}
+
+void adc_setCPacks(uint32_t conf)
+{
+    for (uint8_t chainIndex = 0; chainIndex < ADC_NCHAINS; chainIndex++)
+        for (uint16_t cIndex = 0; cIndex < _configuration.nPacks; cIndex++)
+            _configuration.chains[chainIndex].confPacks[cIndex] = conf;
+}
+
+void adc_setVPacks(double value)
+{
+    int16_t setValue = (int16_t)(value / _range.voltQuantum);
+
+    for (uint8_t chainIndex = 0; chainIndex < ADC_NCHAINS; chainIndex++)
+        for (uint16_t rIndex = 0; rIndex < _measVal.nChannels; rIndex++)
+            _measVal.chains[chainIndex].raw[rIndex] = setValue;
+
+    adc_convertRaw2Double(adcChain_CF);
+    adc_convertRaw2Double(adcChain_UDrp);
 }
 
 void adc_setupSequence(void)
 {
-    static uint32_t basicConfigDWORD = 0;
-    // basicConfigDWORD = ADC_CONF_REDAC(1023)                // VRef = 2.5V
-    //                                                        //   | ADC_CONF_VREF_3V                                  // Do not extend internal Reference
-    //                                                        //   | ADC_CONF_REFBUF // Disable internal VRef Buffer
-    //                    | ADC_CONF_REF_EN                   // Enable internal VRef
-    //                    | ADC_CONF_PD_D                     // Powerdown Channels
-    //                                                        //   | ADC_CONF_RANGE_D                  // Range 2 * VRef
-    //                    | ADC_CONF_PD_C                     // Powerdown Channels
-    //                                                        //   | ADC_CONF_RANGE_C                  // Range 2 * VRef
-    //                    | ADC_CONF_PD_B                     // Powerdown Channels
-    //                                                        //   | ADC_CONF_RANGE_B                  // Range 2 * VRef
-    //                    | ADC_CONF_RANGE_A | ADC_CONF_NSTBY // Powerdown Device
-    //                                                        //   | ADC_CONF_BUSYPOL                  // Busy-signal: lo-active
-    //                                                        //   | ADC_CONF_BUSY_OR_INT              // Busy as interrupt
-    //                                                        //   | ADC_CONF_CLKOUT_EN                // Enable clock-out (Pin 34)
-    //                                                        //   | ADC_CONF_CLKSEL                   // Use external conversion clock
-    //                                                        //   | ADC_CONF_READ_EN                  // Read config-register in the next 2 cycles!
-    //                                                        //   | ADC_CONF_WRITE_EN                // Update register contents
-    //     ;
-
-    basicConfigDWORD = ADC_CONF_REDAC(1023); // VRef = 2.5V
-                                             // basicConfigDWORD |= ADC_CONF_VREF_3V;    // Do not extend internal Reference
-                                             // basicConfigDWORD |= ADC_CONF_REFBUF_OFF; // Disable internal VRef Buffer
-    basicConfigDWORD |= ADC_CONF_REF_EN;     // Enable internal VRef
-    // basicConfigDWORD |= ADC_CONF_PD_D;       // Powerdown Channels
-    // basicConfigDWORD |= ADC_CONF_RANGE_D;    // Range 2 * VRef
-    // basicConfigDWORD |= ADC_CONF_PD_C;       // Powerdown Channels
-    // basicConfigDWORD |= ADC_CONF_RANGE_C;    // Range 2 * VRef
-    // basicConfigDWORD |= ADC_CONF_PD_B;       // Powerdown Channels
-    // basicConfigDWORD |= ADC_CONF_RANGE_B;    // Range 2 * VRef
-    // basicConfigDWORD |= ADC_CONF_RANGE_A;     // Range 2 * VRef
-    // basicConfigDWORD |= ADC_CONF_NSTBY;       // Powerdown Device
-    // basicConfigDWORD |= ADC_CONF_BUSYPOL;     // Busy-signal: lo-active
-    // basicConfigDWORD |= ADC_CONF_BUSY_OR_INT; // Use as Interrupt-signal
-    // basicConfigDWORD |= ADC_CONF_CLKOUT_EN; // Enable clock-out (Pin 34)
-    // basicConfigDWORD |= ADC_CONF_CLKSEL;    // Use external conversion clock
-    // basicConfigDWORD |= ADC_CONF_READ_EN;  // Read config-register in the next 2 cycles!
-    // basicConfigDWORD |= ADC_CONF_WRITE_EN; // Update register contents
+    // static uint32_t basicConfigDWORD = 0;
+    // basicConfigDWORD = ADC_CONF_REDAC(1023); // VRef = 2.5V
+    //                                          // basicConfigDWORD |= ADC_CONF_VREF_3V;    // Do not extend internal Reference
+    //                                          // basicConfigDWORD |= ADC_CONF_REFBUF_OFF; // Disable internal VRef Buffer
+    // basicConfigDWORD |= ADC_CONF_REF_EN;     // Enable internal VRef
+    // // basicConfigDWORD |= ADC_CONF_PD_D;       // Powerdown Channels
+    // // basicConfigDWORD |= ADC_CONF_RANGE_D;    // Range 2 * VRef
+    // // basicConfigDWORD |= ADC_CONF_PD_C;       // Powerdown Channels
+    // // basicConfigDWORD |= ADC_CONF_RANGE_C;    // Range 2 * VRef
+    // // basicConfigDWORD |= ADC_CONF_PD_B;       // Powerdown Channels
+    // // basicConfigDWORD |= ADC_CONF_RANGE_B;    // Range 2 * VRef
+    // // basicConfigDWORD |= ADC_CONF_RANGE_A;     // Range 2 * VRef
+    // // basicConfigDWORD |= ADC_CONF_NSTBY;       // Powerdown Device
+    // // basicConfigDWORD |= ADC_CONF_BUSYPOL;     // Busy-signal: lo-active
+    // // basicConfigDWORD |= ADC_CONF_BUSY_OR_INT; // Use as Interrupt-signal
+    // // basicConfigDWORD |= ADC_CONF_CLKOUT_EN; // Enable clock-out (Pin 34)
+    // // basicConfigDWORD |= ADC_CONF_CLKSEL;    // Use external conversion clock
+    // // basicConfigDWORD |= ADC_CONF_READ_EN;  // Read config-register in the next 2 cycles!
+    // // basicConfigDWORD |= ADC_CONF_WRITE_EN; // Update register contents
 
     pTime_wait(10000); // Wait 10ms
-    while (ssi3_ADCsBusy(adcChain_CF || ssi3_ADCsBusy(adcChain_UDrp)))
+    while (ssi3_ADCsBusy(adcChain_CF) || ssi3_ADCsBusy(adcChain_UDrp))
         ; // To be sure ADCs POR is finished, wait for ADC-chains ready
 
-    // Prepare
-    uint32_t sendConfig;
-    uint16_t *pSendConfig = (uint16_t *)&sendConfig;
-    int16_t blank[16] = {0};
-    int16_t response[16] = {0};
-    double fac = 10.0 / 0x7FFF;
-    double vVals[16][20] = {0};
-    uint16_t wordCnt = 0;
+    // Prepare config
+    adc_setCPacks(_configuration.stdConf | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN);
 
-    sendConfig = basicConfigDWORD | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN;
+    // Send config
     adc_chipselectBlocking(adcChain_CF, bOn);
-    ssi_transmit16Bit(SSI3, pSendConfig, 2);
+    ssi_transmit16Bit(SSI3, _configuration.chains[adcChain_CF].confStream, _configuration.nWords);
     adc_chipselectBlocking(adcChain_CF, bOff);
-    ssi_receive16Bit(SSI3, response, &wordCnt, 2);
+    adc_chipselectBlocking(adcChain_UDrp, bOn);
+    ssi_transmit16Bit(SSI3, _configuration.chains[adcChain_UDrp].confStream, _configuration.nWords);
+    adc_chipselectBlocking(adcChain_UDrp, bOff);
 
-    uint32_t uiResponse = 0;
-    while (!uiResponse)
-    {
-        adc_chipselectBlocking(adcChain_CF, bOn);
-        ssi_transmit16Bit(SSI3, blank, 2);
-        adc_chipselectBlocking(adcChain_CF, bOff);
-        ssi_receive16Bit(SSI3, response, &wordCnt, 2);
-        uiResponse = *((uint32_t *)&response[0]);
-    }
+    // Access ADCs
+    // uint16_t blank[8] = {0};
+    // for (uint8_t accesses = 2; accesses > 0; accesses--) // Each ADC needs 2 accesses before responding the answer
+    // {
+    uint16_t wordCount = 0;
+    adc_chipselectBlocking(adcChain_CF, bOn);
+    ssi_transmit16Bit(SSI3, _configuration.zeroStream, _configuration.nWords);
+    adc_chipselectBlocking(adcChain_CF, bOff);
+    ssi_receive16Bit(SSI3, _configuration.chains[adcChain_CF].responseStream, &wordCount, _configuration.nWords);
+    ssi_clearRxFIFO(adcChain_CF);
 
-    pTime_wait(5);
-
-    // sendConfig = basicConfigDWORD | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN;
-    for (int mVal = 0; mVal < 20; mVal++)
-    {
-        ssi3_convADCs(adcChain_CF, bTrue);
-        ssi3_convADCs(adcChain_CF, bFalse);
-        while (ssi3_ADCsBusy(adcChain_CF))
-            ; // To be sure ADCs POR is finished, wait for ADC-chains ready
-
-        adc_chipselectBlocking(adcChain_CF, bOn);
-        ssi_transmit16Bit(SSI3, (uint16_t *)&blank, 8);
-        adc_chipselectBlocking(adcChain_CF, bOff);
-        ssi_receive16Bit(SSI3, (uint16_t *)&response, &wordCnt, 8);
-        ssi_clearRxFIFO(SSI3);
-
-        double dVal = 0.0;
-        for (int cVal = 0; cVal < 16; cVal++)
-        {
-            dVal = response[cVal] * fac;
-            vVals[cVal][mVal] = dVal;
-            dVal = 0.0;
-        }
-        wordCnt = 0;
-    }
+    adc_chipselectBlocking(adcChain_UDrp, bOn);
+    ssi_transmit16Bit(SSI3, _configuration.zeroStream, _configuration.nWords);
+    adc_chipselectBlocking(adcChain_UDrp, bOff);
+    ssi_receive16Bit(SSI3, _configuration.chains[adcChain_UDrp].responseStream, &wordCount, _configuration.nWords);
+    ssi_clearRxFIFO(SSI3);
+    // }
 }
 
 cBool adc_chipselect(enum adcChain chain, cBool csState)
@@ -199,4 +233,36 @@ void adc_chipselectBlocking(enum adcChain chain, cBool csState)
 {
     while (adc_chipselect(chain, csState) == bFalse)
         ; // Wait until chip-select was done correctly
+}
+
+void adc_convertRaw2Double(enum adcChain chain)
+{
+    for (uint16_t iConv = 0; iConv < _measVal.nChannels; iConv++)
+        _measVal.chains[chain].voltages[iConv] = _range.voltQuantum * _measVal.chains[chain].raw[iConv];
+}
+
+void adc_takeMeasurement(enum adcChain chain)
+{
+    while (ssi3_ADCsBusy(chain) || ssi_SendindStatus(SSI3) == ssi_sending_idle)
+        ; // Wait for SSI and ADCs ready
+
+    ssi3_convADCs(chain, bTrue);
+    ssi3_convADCs(chain, bFalse);
+
+    while (ssi3_ADCsBusy(chain))
+        ; // Wait for ADCs finished sampling
+
+    uint16_t wordCnt = 0;
+    ssi3_selectADCs(chain, bTrue);
+    ssi_transmit16Bit(SSI3, _measVal.zeroStream, _measVal.nWords);
+    ssi3_selectADCs(chain, bFalse);
+    ssi_receive16Bit(SSI3, (uint16_t *)_measVal.chains[chain].raw, &wordCnt, _measVal.nWords);
+    ssi_clearRxFIFO(SSI3);
+
+    adc_convertRaw2Double(chain);
+}
+
+adc_measurementValues_t *adc_grabMeasurements(void)
+{
+    return &_measVal;
 }
