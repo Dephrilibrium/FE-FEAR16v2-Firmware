@@ -15,9 +15,16 @@
       // specify path to openocd.exe.
       //"serverpath": "",
       "svdFile": "${workspaceFolder}/TM4C123GH6PM/TM4C123GH6PM.svd.xml",
-      "configFiles": ["board/ek-tm4c123gxl.cfg"],
+      "configFiles": [
+        "board/ek-tm4c123gxl.cfg"
+      ],
       "runToMain": true,
-      "postLaunchCommands": ["set output-radix 16"]
+      "preLaunchCommands": [
+        "del",
+      ],
+      "postLaunchCommands": [
+        "set output-radix 16",
+      ]
     }
   ]
 }
