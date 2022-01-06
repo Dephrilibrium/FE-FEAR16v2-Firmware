@@ -35,7 +35,7 @@ int main(void)
     sys_clk_set(); // Set 80MHz
     pTime_init(pTime_tickbase_1us);
     terminal_init();
-    // dacs_init();
+    dacs_init();
     adcs_init();
 
     while (1)

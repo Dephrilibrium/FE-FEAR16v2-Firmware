@@ -46,6 +46,7 @@
 \*******************************/
 typedef struct
 {
+    const uint16_t nChains;
     const uint16_t nPacks;
     const uint16_t nWords;
 
@@ -61,8 +62,8 @@ typedef struct
         };
         union // Currently not implemented
         {
-            uint32_t responseConf;
-            uint16_t responseStream[ADC_CPACK_NWORDS];
+            uint32_t responseConf[ADC_NALLCONFPACKS];
+            uint16_t responseStream[ADC_CPACKS_NALLWORDS];
         };
     } chains[ADC_NCHAINS];
 } adc_sendConf_t;
@@ -89,12 +90,14 @@ void adc_setVPacks(double value);
 // void adc_fetchRxData(enum adc_packIndex packIndex);
 
 // double adc_selectVoltRange(double voltRange); // Hardly to calculate -> Maybe a feature in future
+void adc_reverseRaw(enum adcChain chain);
 void adc_convertRaw2Double(enum adcChain chain);
 
 /*******************************\
 | Global variables
 \*******************************/
 adc_sendConf_t _configuration = {
+    .nChains = ADC_NCHAINS,
     .nPacks = ADC_NALLCONFPACKS,
     .nWords = ADC_CPACKS_NALLWORDS,
     .stdConf = ADC_CONF_REDAC(1023) // Scale VRef -> 2.5V
@@ -118,7 +121,8 @@ adc_sendConf_t _configuration = {
     ,
     .zeroStream = {0},
     .chains = {{{{0}}}}};
-adc_measurementValues_t _measVal = {.nChannels = ADC_NALLCHPACKS,
+adc_measurementValues_t _measVal = {.nChains = ADC_NCHAINS,
+                                    .nChannels = ADC_NALLCHPACKS,
                                     .nWords = ADC_CHANNELS_NALLWORDS,
                                     .zeroStream = {0},
                                     .chains = {{{0}}}};
@@ -156,7 +160,7 @@ void adc_setVPacks(double value)
 {
     int16_t setValue = (int16_t)(value / _range.voltQuantum);
 
-    for (uint8_t chainIndex = 0; chainIndex < ADC_NCHAINS; chainIndex++)
+    for (uint8_t chainIndex = 0; chainIndex < _measVal.nChains; chainIndex++)
         for (uint16_t rIndex = 0; rIndex < _measVal.nChannels; rIndex++)
             _measVal.chains[chainIndex].raw[rIndex] = setValue;
 
@@ -193,31 +197,21 @@ void adc_setupSequence(void)
     // Prepare config
     adc_setCPacks(_configuration.stdConf | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN);
 
-    // Send config
-    adc_chipselectBlocking(adcChain_CF, bOn);
-    ssi_transmit16Bit(SSI3, _configuration.chains[adcChain_CF].confStream, _configuration.nWords);
-    adc_chipselectBlocking(adcChain_CF, bOff);
-    adc_chipselectBlocking(adcChain_UDrp, bOn);
-    ssi_transmit16Bit(SSI3, _configuration.chains[adcChain_UDrp].confStream, _configuration.nWords);
-    adc_chipselectBlocking(adcChain_UDrp, bOff);
-
-    // Access ADCs
-    // uint16_t blank[8] = {0};
-    // for (uint8_t accesses = 2; accesses > 0; accesses--) // Each ADC needs 2 accesses before responding the answer
-    // {
+    // Send config one by one (could also be done simultaneously, but to avoid may occuring shortcuts between slave outputs)
     uint16_t wordCount = 0;
-    adc_chipselectBlocking(adcChain_CF, bOn);
-    ssi_transmit16Bit(SSI3, _configuration.zeroStream, _configuration.nWords);
-    adc_chipselectBlocking(adcChain_CF, bOff);
-    ssi_receive16Bit(SSI3, _configuration.chains[adcChain_CF].responseStream, &wordCount, _configuration.nWords);
-    ssi_clearRxFIFO(adcChain_CF);
-
-    adc_chipselectBlocking(adcChain_UDrp, bOn);
-    ssi_transmit16Bit(SSI3, _configuration.zeroStream, _configuration.nWords);
-    adc_chipselectBlocking(adcChain_UDrp, bOff);
-    ssi_receive16Bit(SSI3, _configuration.chains[adcChain_UDrp].responseStream, &wordCount, _configuration.nWords);
-    ssi_clearRxFIFO(SSI3);
-    // }
+    for (uint8_t chainIndex = 0; chainIndex < _configuration.nChains; chainIndex++)
+    {
+        adc_chipselectBlocking(chainIndex, bOn);
+        ssi_transmit16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.nWords);
+        adc_chipselectBlocking(chainIndex, bOff);
+        while (_configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] == 0)
+        {
+            adc_chipselectBlocking(chainIndex, bOn);
+            ssi_transmit16Bit(SSI3, _configuration.zeroStream, _configuration.nWords);
+            adc_chipselectBlocking(chainIndex, bOff);
+            ssi_receive16Bit(SSI3, _configuration.chains[chainIndex].responseStream, &wordCount, _configuration.nWords);
+        }
+    }
 }
 
 cBool adc_chipselect(enum adcChain chain, cBool csState)
@@ -235,15 +229,33 @@ void adc_chipselectBlocking(enum adcChain chain, cBool csState)
         ; // Wait until chip-select was done correctly
 }
 
+void adc_reverseRaw(enum adcChain chain)
+{
+    int16_t bakVal;
+
+    uint16_t iOpposite;
+    uint16_t halfIndex = _measVal.nChannels / 2;
+    for (uint16_t iRev = 0; iRev < halfIndex; iRev++)
+    {
+        iOpposite = (_measVal.nChannels - 1) - iRev;
+
+        bakVal = _measVal.chains[chain].raw[iRev];
+        _measVal.chains[chain].raw[iRev] = _measVal.chains[chain].raw[iOpposite];
+        _measVal.chains[chain].raw[iOpposite] = bakVal;
+    }
+}
+
 void adc_convertRaw2Double(enum adcChain chain)
 {
+    adc_reverseRaw(chain);
+
     for (uint16_t iConv = 0; iConv < _measVal.nChannels; iConv++)
         _measVal.chains[chain].voltages[iConv] = _range.voltQuantum * _measVal.chains[chain].raw[iConv];
 }
 
 void adc_takeMeasurement(enum adcChain chain)
 {
-    while (ssi3_ADCsBusy(chain) || ssi_SendindStatus(SSI3) == ssi_sending_idle)
+    while (ssi3_ADCsBusy(chain) || ssi_SendindStatus(SSI3) != ssi_sending_idle)
         ; // Wait for SSI and ADCs ready
 
     ssi3_convADCs(chain, bTrue);
@@ -253,11 +265,11 @@ void adc_takeMeasurement(enum adcChain chain)
         ; // Wait for ADCs finished sampling
 
     uint16_t wordCnt = 0;
-    ssi3_selectADCs(chain, bTrue);
+    adc_chipselectBlocking(chain, bTrue);
     ssi_transmit16Bit(SSI3, _measVal.zeroStream, _measVal.nWords);
-    ssi3_selectADCs(chain, bFalse);
+    adc_chipselectBlocking(chain, bFalse);
     ssi_receive16Bit(SSI3, (uint16_t *)_measVal.chains[chain].raw, &wordCnt, _measVal.nWords);
-    ssi_clearRxFIFO(SSI3);
+    // ssi_clearRxFIFO(SSI3);
 
     adc_convertRaw2Double(chain);
 }
