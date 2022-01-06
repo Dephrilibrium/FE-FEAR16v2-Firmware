@@ -25,7 +25,7 @@ struct dacChUpdRequest
   struct
   {
     cBool requested;
-    float voltage;
+    double voltage;
   } ChRequests[DAC_NALLVOLTPACKS];
 };
 
@@ -44,8 +44,8 @@ struct dacChUpdRequest _dacChRequests = {.nChannels = DAC_NALLVOLTPACKS, .ChRequ
 \*******************************/
 void cmdsDAC_parseArgs(terminalCmd_t *cmd)
 {
-  // Convert voltage as float
-  float voltage = atof(cmd->argv[CMDS_DAC_VSET_VOLTAGEINDEX]);
+  // Convert voltage as double
+  double voltage = atof(cmd->argv[CMDS_DAC_VSET_VOLTAGEINDEX]);
 
   // Determine which channels should be updated
   // How much separators given
@@ -80,7 +80,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd)
       fromCh = toCh;
       toCh = bakCh;
     }
-    // Assign float voltage to queried channels
+    // Assign double voltage to queried channels
     for (uint8_t iCh = fromCh; iCh <= toCh; iCh++)
     {
       // Jump over channels which not exists
