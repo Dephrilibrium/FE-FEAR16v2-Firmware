@@ -8,7 +8,18 @@ MEMORY
 	SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00008000
 }
 
-heap_size = 0x6000; /* 2K */
+/* Incorrect value!
+ * 2k (2096 bytes) -> 0x800
+ * 0x6000 -> 24k (24576 bytes)
+ * That caused an linker-error:
+ * "ld.exe: region RAM overflowed with stack collect2.exe
+ *
+ * Solution:
+ * Reducing Heap (not used that much in this project!) to
+ * 0x2000 -> 8k (8192 bytes)
+ */
+/*heap_size = 0x6000; /* 2K */
+heap_size = 0x2000; /* 8K */
 
 SECTIONS {
 

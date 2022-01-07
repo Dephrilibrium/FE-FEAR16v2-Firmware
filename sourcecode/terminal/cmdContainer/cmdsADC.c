@@ -53,7 +53,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd);
 | Global variables
 \*******************************/
 adcChUpdRequest_t _adcChRequests = {.nChannels = ADC_NALLCHPACKS, .ChRequests = {{0}}};
-// adcOutputString_t _outputString = {.nSize = CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE, .nFill = 0, .string = {0}};
+adcOutputString_t _outputString = {.nSize = CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE, .nFill = 0, .string = {0}};
 
 /*******************************\
 | Function definitons
@@ -129,15 +129,15 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
     return;
   }
 
-  // cmdsADC_parseArgs(cmd);
-  // if (_adcChRequests.targetChain < adcChain_CF || _adcChRequests.targetChain > adcChain_UDrp)
-  // {
-  //   terminal_NAK(" Unknown ADC-chain");
-  //   terminal_send(lineTerm.stdlineTerm);
-  //   return;
-  // }
-  // terminal_ACK(NULL);
-  // terminal_send(lineTerm.stdlineTerm);
+  cmdsADC_parseArgs(cmd);
+  if (_adcChRequests.targetChain < adcChain_CF || _adcChRequests.targetChain > adcChain_UDrp)
+  {
+    terminal_NAK(" Unknown ADC-chain");
+    terminal_send(lineTerm.stdlineTerm);
+    return;
+  }
+  terminal_ACK(NULL);
+  terminal_send(lineTerm.stdlineTerm);
   adc_takeMeasurement(_adcChRequests.targetChain);
 
   // _outputString.nFill = 0;
@@ -148,7 +148,7 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
     {
       _adcChRequests.ChRequests[iQuery].requested = bFalse;
       // _adcChRequests.ChRequests[iQuery].voltage = measurements->chains[_adcChRequests.targetChain].voltages[iQuery];
-      // sprintf(&_outputString.string[_outputString.nFill], "%.4f", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
+      sprintf(&_outputString.string[_outputString.nFill], "%.4f", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
     }
   }
 }

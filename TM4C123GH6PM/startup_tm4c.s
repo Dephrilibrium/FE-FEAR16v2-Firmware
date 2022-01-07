@@ -7,7 +7,7 @@
 // Stack set-up
 	.section .stack
 	.align 3
-	.equ Stack_Size, 0x00000300
+	.equ Stack_Size, 0x00000400
 	.global __StackTop
 	.global __StackLimit
 
