@@ -21,7 +21,7 @@
  *                    + 1 * Number separator (;)
  * Size = Digits per Channel * 16 (Number of Channels) * 2 (Security-space!)
  */
-#define CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE (1 + 2 + 1 + 4 + 1) * 1 // ADC_NALLCHPACKS
+#define CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE (1 + 2 + 1 + 4 + 1) * 16 // ADC_NALLCHPACKS
 
 /*******************************\
 | Local Enum/Struct/Union
@@ -61,12 +61,15 @@ adcOutputString_t _outputString = {.nSize = CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE, .n
 void cmdsADC_parseArgs(terminalCmd_t *cmd)
 {
   // Get target chain
-  if (!strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_CF))
+  if (strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_CF) == 0)
     _adcChRequests.targetChain = adcChain_CF;
-  else if (!strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_UDRP))
+  else if (strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_UDRP) == 0)
     _adcChRequests.targetChain = adcChain_UDrp;
-  else
+  else // Unknown Chain-Identifier -> Avoid residual code to save time -> return
+  {
     _adcChRequests.targetChain = -1; // No matching chain -> Deselect!
+    return;
+  }
 
   // Determine which channels are requested
   // How much separators given
@@ -140,15 +143,19 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
   terminal_send(lineTerm.stdlineTerm);
   adc_takeMeasurement(_adcChRequests.targetChain);
 
-  // _outputString.nFill = 0;
   adc_measurementValues_t *measurements = adc_grabMeasurements();
+  _outputString.nFill = 0;
+  _outputString.string[0] = '\0';
   for (uint16_t iQuery = 0; iQuery < _adcChRequests.nChannels; iQuery++)
   {
     if (_adcChRequests.ChRequests[iQuery].requested == bTrue)
     {
       _adcChRequests.ChRequests[iQuery].requested = bFalse;
       // _adcChRequests.ChRequests[iQuery].voltage = measurements->chains[_adcChRequests.targetChain].voltages[iQuery];
-      sprintf(&_outputString.string[_outputString.nFill], "%.4f", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
+      sprintf(&_outputString.string[_outputString.nFill], "%.4f;", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
+      _outputString.nFill += strlen(&_outputString.string[_outputString.nFill]);
     }
   }
+  terminal_send(_outputString.string);
+  terminal_send(lineTerm.stdlineTerm);
 }

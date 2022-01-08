@@ -7,6 +7,7 @@
 #include "terminal.h"
 #include "uart1.h"
 #include "cmdsDAC.h"
+#include "cmdsADC.h"
 
 /*******************************\
 | Local Defines
@@ -185,6 +186,10 @@ enum terminalError terminal_runCmd(terminalCmd_t *cmd)
     else if (strcmp(CMDS_DAC_VSET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
     {
         cmdsDAC_setVoltage(cmd);
+    }
+    else if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+    {
+        cmdsADC_getVoltage(cmd);
     }
     /******************************************************************/
     else if (strcmp(CMD_ERR_HANDLE, cmd->argv[CMD_HANDLE_INDEX]) == 0) // Error

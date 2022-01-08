@@ -19,11 +19,9 @@ MEMORY
  * 0x2000 -> 8k (8192 bytes)
  */
 /*heap_size = 0x6000; /* 2K */
-heap_size = 0x2000; /* 8K */
+heap_size = 0x800; /* 2K, not really used in this program */
 
 SECTIONS {
-
-
     .text : AT (0x00000000)
     {
         . = ALIGN(4);
@@ -36,17 +34,17 @@ SECTIONS {
         _end_text = .;
     } >FLASH
 
-        .ARM.extab :
-        {
-                *(.ARM.extab* .gnu.linkonce.armextab.*)
-        } > FLASH
+    .ARM.extab :
+    {
+            *(.ARM.extab* .gnu.linkonce.armextab.*)
+    } > FLASH
 
-        __exidx_start = .;
-        .ARM.exidx :
-        {
-                *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-        } > FLASH
-        __exidx_end = .;
+    __exidx_start = .;
+    .ARM.exidx :
+    {
+            *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+    } > FLASH
+    __exidx_end = .;
 
     _end_text = .;
 

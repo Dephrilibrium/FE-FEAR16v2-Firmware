@@ -1,5 +1,5 @@
-#ifndef CMDS_DAC_H
-#define CMDS_DAC_H
+#ifndef CMDS_ADC_H
+#define CMDS_ADC_H
 /*******************************\
 | Includes
 \*******************************/

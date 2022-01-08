@@ -233,15 +233,23 @@ void adc_reverseRaw(enum adcChain chain)
 {
     int16_t bakVal;
 
-    uint16_t iOpposite;
-    uint16_t halfIndex = _measVal.nChannels / 2;
-    for (uint16_t iRev = 0; iRev < halfIndex; iRev++)
-    {
-        iOpposite = (_measVal.nChannels - 1) - iRev;
+    uint16_t chPerADC = ADC_CHANNELS;
 
-        bakVal = _measVal.chains[chain].raw[iRev];
-        _measVal.chains[chain].raw[iRev] = _measVal.chains[chain].raw[iOpposite];
-        _measVal.chains[chain].raw[iOpposite] = bakVal;
+    uint16_t iLowerRaw, iUpperRaw, iUpperCopy;
+    uint16_t halfIndex = chPerADC / 2;
+
+    for (uint16_t iChain = 0; iChain < _measVal.nChains; iChain++)
+    {
+        iUpperCopy = chPerADC * (iChain + 1);
+        iUpperRaw = iUpperCopy - halfIndex;
+        for (iLowerRaw = iChain * chPerADC; iLowerRaw < iUpperRaw; iLowerRaw++)
+        {
+            iUpperCopy--;
+
+            bakVal = _measVal.chains[chain].raw[iLowerRaw];
+            _measVal.chains[chain].raw[iLowerRaw] = _measVal.chains[chain].raw[iUpperCopy];
+            _measVal.chains[chain].raw[iUpperCopy] = bakVal;
+        }
     }
 }
 

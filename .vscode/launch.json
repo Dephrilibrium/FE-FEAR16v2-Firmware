@@ -19,11 +19,11 @@
         "board/ek-tm4c123gxl.cfg"
       ],
       "runToMain": true,
-      "preLaunchCommands": [
-        "del",
-      ],
+      // "preLaunchCommands": [
+      // ],
       "postLaunchCommands": [
-        "set output-radix 16",
+        "del",
+        // "set output-radix 16",
       ]
     }
   ]
