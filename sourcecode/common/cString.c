@@ -3,6 +3,7 @@
 \*******************************/
 /* Std-Libs */
 #include "stddef.h"
+#include "string.h"
 
 /* Project specific */
 #include "cString.h"
@@ -48,7 +49,8 @@ uint32_t cstrCntChar(const char *string, char cSearch)
 
 cBool cstrIsNum(const char *string, enum StringNumberBase snb)
 {
-  char *lastStrP = (char *)((uint32_t)string + 65); // Do not allow strings longer than 64 (63 digits + 1 '.')
+  uint8_t len = strlen(string);
+  char *lastStrP = (char *)((uint32_t)string + len); // Do not allow strings longer than 64 (63 digits + 1 '.')
   uint8_t cPoints = 0;
 
   while (string < lastStrP)
@@ -88,7 +90,7 @@ cBool cstrIsNum(const char *string, enum StringNumberBase snb)
   }
 
   // Number is longer than the maximum allowed length!
-  if (lastStrP >= string)
+  if (string >= lastStrP)
     return bFalse;
 
   // When everything run through the number is valid

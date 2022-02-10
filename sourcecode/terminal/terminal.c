@@ -8,9 +8,14 @@
 #include "uart1.h"
 #include "cmdsDAC.h"
 #include "cmdsADC.h"
+#include "cString.h"
 
 /*******************************\
 | Local Defines
+\*******************************/
+
+/*******************************\
+| Enum/Struct/Union
 \*******************************/
 
 /*******************************\
@@ -26,7 +31,11 @@ void terminal_wipeBuffers(void);     // Wipe linebuffer (with '\0')
 terminalCmd_t *terminal_decodeLineBuffer(void);
 
 void terminal_echo(terminalCmd_t *cmd);
-void terminal_setVoltageDAC(terminalCmd_t *cmd);
+void terminal_idn(terminalCmd_t *cmd);
+void terminal_changeBaud(terminalCmd_t *cmd);
+// void terminal_option_echo(terminalCmd_t *cmd); // Maybe for future use
+void terminal_lineterm(terminalCmd_t *cmd);
+// void terminal_setVoltageDAC(terminalCmd_t *cmd); // Moved to cmdsDAC
 
 void terminal_err(terminalCmd_t *cmd);
 void terminal_unknown(terminalCmd_t *cmd);
@@ -34,7 +43,15 @@ void terminal_unknown(terminalCmd_t *cmd);
 /*******************************\
 | Global variablesH
 \*******************************/
-struct terminal_lineTerm lineTerm = {"\r", "\n", "\r\n", lineTerm.CRLF};
+terminalOptions_t termOptions = {
+    .echo = bFalse,
+    .lineTerm = {
+        .CR = "\r",
+        .LF = "\n",
+        .CRLF = "\r\n",
+        .stdlineTerm = termOptions.lineTerm.CRLF,
+    }};
+// struct terminal_lineTerm_t lineTerm = {"\r", "\n", "\r\n", lineTerm.CRLF};
 
 // #pragma GCC diagnostic push
 // #pragma GCC diagnostic ignored "-Wmissing-braces"
@@ -100,7 +117,7 @@ terminalCmd_t *terminal_fetchCmd(void)
         //_inputLine.LineBuffer[_inputLine.Filled] = '\0'; // Be sure string is always terminated
 
         // Add option to echo on/off
-        uart1_putc(c);
+        // uart1_putc(c);
     }
 
     return NULL; // Nothing new here, give NULL
@@ -179,71 +196,178 @@ void terminal_wipeCmdStruct(void)
 #pragma region Terminal run commands
 enum terminalError terminal_runCmd(terminalCmd_t *cmd)
 {
-    if (strcmp(CMD_ECHO, cmd->argv[CMD_HANDLE_INDEX]) == 0)
-        terminal_echo(cmd);
-    /***************** Check all "real" commands here *****************/
-    // DAC Set voltage
-    else if (strcmp(CMDS_DAC_VSET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
-    {
+    /***************** Check all "real" commands first *****************\
+    | Checking first the typic used commands to reduce the comparison   |
+    | effort.                                                           |
+    \*******************************************************************/
+    // DAC commands
+    if (strcmp(CMDS_DAC_VSET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
         cmdsDAC_setVoltage(cmd);
-    }
+
+    else if (strcmp(CMDS_DAC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        cmdsDAC_getVoltage(cmd);
+
+    // ADC commands
     else if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
-    {
         cmdsADC_getVoltage(cmd);
-    }
-    /******************************************************************/
+
+    // Terminal/Options and so on
+    else if (strcmp(CMD_IDN, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        terminal_idn(cmd);
+
+    // Device Options
+    // else if (strcmp(CMD_TERMINAL_ECHO_SET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+    //     terminal_echo_(cmd);
+
+    else if (strcmp(CMD_TERMINAL_LINETERM_SET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        terminal_lineterm(cmd);
+
+    else if (strcmp(CMD_TERMINAL_BAUD_SET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        terminal_changeBaud(cmd);
+    /********************************************************************/
+
+    /***************** Check all common cmds as last  *****************\
+    | Checking the common and not so often used commands as last saves |
+    | a little bit comparison effort of the µC.                        |
+    \******************************************************************/
+    else if (strcmp(CMD_ECHO, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        terminal_echo(cmd);
     else if (strcmp(CMD_ERR_HANDLE, cmd->argv[CMD_HANDLE_INDEX]) == 0) // Error
         terminal_err(cmd);
     else
         terminal_unknown(cmd);
+    /******************************************************************/
 
     return terminal_Ok;
 }
 
 void terminal_echo(terminalCmd_t *cmd)
 {
-    uart1_Transmit(lineTerm.stdlineTerm);
+    // uart1_Transmit(termOptions.lineTerm.stdlineTerm);
     uint16_t lastArgc = cmd->argc - 1;
     for (uint16_t argi = 1; argi <= lastArgc; argi++)
     {
-        uart1_Transmit(cmd->argv[argi]);
+        terminal_send(cmd->argv[argi]);
         if (argi < lastArgc)
-            uart1_Transmit(" ");
+            terminal_send(" ");
     }
-    uart1_Transmit(lineTerm.stdlineTerm);
+    terminal_sendline(NULL);
+}
+
+void terminal_idn(terminalCmd_t *cmd)
+{
+    terminal_send(TERMINAL_ACKNOWLEDGED);
+    terminal_send(" Device,");
+    terminal_send(IDN_DEVICETYPE);
+    terminal_send(",Firmware-Build,");
+    terminal_sendline(IDN_FIRMWARE);
+}
+
+void terminal_changeBaud(terminalCmd_t *cmd)
+{
+    if (cmd->argc < 2)
+    {
+        terminal_NAK("No argument given");
+        return;
+    }
+    if (cmd->argc > 2)
+    {
+        terminal_NAK("Too much arguments");
+        return;
+    }
+
+    if (cstrIsNum(cmd->argv[1], SNB_Dez) == bFalse)
+    {
+        terminal_NAK("Argument is no number");
+        return;
+    }
+
+    uint32_t baud = atoi(cmd->argv[1]);
+    terminal_ACK(NULL);
+    uart1_setBaud(baud);
+}
+
+// void terminal_option_echo(terminalCmd_t *cmd)
+// {
+// }
+
+void terminal_lineterm(terminalCmd_t *cmd)
+{
+    if (cmd->argc < 2)
+        terminal_NAK("Missing argument");
+
+    if (cmd->argc > 2)
+        terminal_NAK("Too much arguments");
+
+    if (strcmp(cmd->argv[1], termOptions.lineTerm.CR))
+        termOptions.lineTerm.stdlineTerm = termOptions.lineTerm.CR;
+    else if (strcmp(cmd->argv[1], termOptions.lineTerm.LF))
+        termOptions.lineTerm.stdlineTerm = termOptions.lineTerm.LF;
+    else if (strcmp(cmd->argv[1], termOptions.lineTerm.CRLF))
+        termOptions.lineTerm.stdlineTerm = termOptions.lineTerm.CRLF;
+    else
+    {
+        termOptions.lineTerm.stdlineTerm = termOptions.lineTerm.CRLF;
+        terminal_NAK(NULL);
+        return;
+    }
+
+    terminal_ACK(NULL);
 }
 
 void terminal_err(terminalCmd_t *cmd)
 {
-    uart1_Transmit(cmd->argv[CMD_ERR_HANDLE_INDEX]);
-    uart1_Transmit(cmd->argv[CMD_ERRMSG_INDEX]);
-    uart1_Transmit(lineTerm.stdlineTerm);
+    terminal_NAK("Error");
+    terminal_send(",");
+    terminal_send(cmd->argv[CMD_ERR_HANDLE_INDEX]);
+    terminal_send(",");
+    terminal_sendline(cmd->argv[CMD_ERRMSG_INDEX]);
+    // uart1_Transmit(termOptions.lineTerm.stdlineTerm);
 }
 
 void terminal_unknown(terminalCmd_t *cmd)
 {
-    uart1_Transmit("Unknown cmd;");
+    terminal_NAK("Unknown command");
     if (cmd->argv[0] != NULL)
-        uart1_Transmit(cmd->argv[CMD_HANDLE_INDEX]);
-    uart1_Transmit(lineTerm.stdlineTerm);
+    {
+        terminal_send(",");
+        terminal_send(cmd->argv[CMD_HANDLE_INDEX]);
+    }
+    terminal_sendline(NULL);
 }
 #pragma endregion Terminal run commands
 
 void terminal_send(char *msg)
 {
-    uart1_Transmit(msg);
+    if (msg != NULL)
+        uart1_Transmit(msg);
+}
+
+void terminal_sendline(char *msg)
+{
+    if (msg != NULL)
+        uart1_Transmit(msg);
+    uart1_Transmit(termOptions.lineTerm.stdlineTerm);
 }
 
 void terminal_ACK(char *msg)
 {
-    uart1_Transmit(TERMINAL_ACKNOWLEDGED);
+    terminal_send(TERMINAL_ACKNOWLEDGED);
     if (msg != NULL)
-        uart1_Transmit(msg);
+    {
+        terminal_send(" ");
+        terminal_send(msg);
+    }
+    terminal_sendline(NULL);
 }
 
 void terminal_NAK(char *msg)
 {
-    uart1_Transmit(TERMINAL_NOT_ACKNOWLEDGED);
+    terminal_send(TERMINAL_NOT_ACKNOWLEDGED);
     if (msg != NULL)
-        uart1_Transmit(msg);
+    {
+        terminal_send(" ");
+        terminal_sendline(msg);
+    }
+    terminal_sendline(NULL);
 }

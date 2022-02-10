@@ -12,9 +12,16 @@
 /*******************************\
 | Local Defines
 \*******************************/
-#pragma region Hardwaredefines
-
-#pragma endregion Hardwaredefines
+/* Buffersize is
+ * Digits per Channel = 9 Digits
+ *                    = 1* + or - sign
+ *                    + 2 * Mantis
+ *                    + 1 * Decimal separator (.)
+ *                    + 4 * Decimal places
+ *                    + 1 * Number separator (;)
+ * Size = Digits per Channel * 16 (Number of Channels) * 2 (Security-space!)
+ */
+#define CMDS_DAC_OUTPUTSTRINGBUFFER_SIZE (1 + 2 + 1 + 4 + 1) * 16 // ADC_NALLCHPACKS
 
 /*******************************\
 | Local Enum/Struct/Union
@@ -29,6 +36,13 @@ struct dacChUpdRequest
   } ChRequests[DAC_NALLVOLTPACKS];
 };
 
+typedef struct
+{
+  const uint16_t nSize;
+  uint16_t nFill;
+  char string[CMDS_DAC_OUTPUTSTRINGBUFFER_SIZE];
+} dacOutputString_t;
+
 /*******************************\
 | Local function declarations
 \*******************************/
@@ -38,6 +52,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd);
 | Global variables
 \*******************************/
 struct dacChUpdRequest _dacChRequests = {.nChannels = DAC_NALLVOLTPACKS, .ChRequests = {{0}}};
+dacOutputString_t _dacOutputString = {.nSize = CMDS_DAC_OUTPUTSTRINGBUFFER_SIZE, .nFill = 0, .string = {0}};
 
 /*******************************\
 | Function definitons
@@ -45,31 +60,43 @@ struct dacChUpdRequest _dacChRequests = {.nChannels = DAC_NALLVOLTPACKS, .ChRequ
 void cmdsDAC_parseArgs(terminalCmd_t *cmd)
 {
   // Convert voltage as double
-  double voltage = atof(cmd->argv[CMDS_DAC_VSET_VOLTAGEINDEX]);
+  // double voltage = atof(cmd->argv[CMDS_DAC_VSET_VOLTAGEINDEX]);
 
   // Determine which channels should be updated
   // How much separators given
-  uint8_t cSgmnts = 1 + cstrCntChar(cmd->argv[CMDS_DAC_VSET_CHANNELINDEX],
-                                    CMDS_DAC_VSET_CHANNELSEPARTOR[0]);
+  uint8_t cSgmnts = 1 + cstrCntChar(cmd->argv[CMDS_DAC_VSET_CHANNEL_STARTINDEX],
+                                    CMDS_DAC_VSET_CHNL2CHNL_SEPARTOR[0]);
 
-  // Split the separated "from-to" channel-strings
+  // Split the voltage-combined "from-to" channel-strings
   uint8_t iSgmnt = 0;
-  char *segStrgs[cSgmnts];
-  segStrgs[0] = strtok(cmd->argv[CMDS_DAC_VSET_CHANNELINDEX],
-                       CMDS_DAC_VSET_CHANNELSEPARTOR);
+  char *segChStrgs[cSgmnts];
+  char *segValStrgs[cSgmnts];
+  segChStrgs[0] = strtok(cmd->argv[CMDS_DAC_VSET_CHANNEL_STARTINDEX],
+                         CMDS_DAC_VSET_CHNL2CHNL_SEPARTOR);
   for (iSgmnt++; iSgmnt < cSgmnts; iSgmnt++)
-    segStrgs[iSgmnt] = strtok(NULL, CMDS_DAC_VSET_CHANNELSEPARTOR);
+    segChStrgs[iSgmnt] = strtok(NULL, CMDS_DAC_VSET_CHNL2CHNL_SEPARTOR);
+
+  // Separate voltage from channels
+  for (iSgmnt = 0; iSgmnt < cSgmnts; iSgmnt++)
+  {
+    segChStrgs[iSgmnt] = strtok(segChStrgs[iSgmnt],
+                                CMDS_DAC_VSET_CHANNEL_VOLTAGE_SEPARATOR);
+    segValStrgs[iSgmnt] = strtok(NULL,
+                                 CMDS_DAC_VSET_CHANNEL_VOLTAGE_SEPARATOR);
+  }
+
   // Run through "from-to" channel-strings and set channel-query and target-voltage
   int16_t fromCh;
   int16_t toCh;
+  double voltage;
   char *tmpStr = NULL;
   for (iSgmnt = 0; iSgmnt < cSgmnts; iSgmnt++)
   {
-    tmpStr = strtok(segStrgs[iSgmnt], CMDS_DAC_VSET_CHANNEL_FROM_TO_SEPARTOR);
-    fromCh = atoi(tmpStr);
+    tmpStr = strtok(segChStrgs[iSgmnt], CMDS_DAC_VSET_CHANNEL_FROM_TO_SEPARTOR);
+    fromCh = atoi(&tmpStr[2]); // Remove "CH" from "CHx" and convert x
     tmpStr = strtok(NULL, CMDS_DAC_VSET_CHANNEL_FROM_TO_SEPARTOR);
     if (tmpStr)
-      toCh = atoi(tmpStr);
+      toCh = atoi(&tmpStr[2]); // Remove "CH" from "CHx" and convert x
     else
       toCh = fromCh;
 
@@ -81,6 +108,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd)
       toCh = bakCh;
     }
     // Assign double voltage to queried channels
+    voltage = atof(segValStrgs[iSgmnt]);
     for (uint8_t iCh = fromCh; iCh <= toCh; iCh++)
     {
       // Jump over channels which not exists
@@ -98,21 +126,18 @@ void cmdsDAC_setVoltage(terminalCmd_t *cmd)
   /* Guard clauses */
   if (cmd->argc < CMDS_DAC_VSET_ARGC)
   {
-    terminal_NAK(" Not enough arguments");
-    terminal_send(lineTerm.stdlineTerm);
+    terminal_NAK("Not enough arguments");
     return;
   }
   else if (cmd->argc > CMDS_DAC_VSET_ARGC)
   {
-    terminal_NAK(" Too much arguments");
-    terminal_send(lineTerm.stdlineTerm);
+    terminal_send(TERMINAL_NOT_ACKNOWLEDGED);
+    terminal_send("Too much arguments from: ");
+    terminal_sendline(cmd->argv[CMDS_DAC_VSET_ARGC]);
     return;
   }
 
   cmdsDAC_parseArgs(cmd);
-  terminal_ACK(NULL);
-  terminal_send(lineTerm.stdlineTerm);
-
   for (uint16_t iQuery = 0; iQuery < _dacChRequests.nChannels; iQuery++)
   {
     if (_dacChRequests.ChRequests[iQuery].requested == bTrue)
@@ -121,4 +146,39 @@ void cmdsDAC_setVoltage(terminalCmd_t *cmd)
       dac_setChVoltage(iQuery, _dacChRequests.ChRequests[iQuery].voltage);
     }
   }
+  terminal_ACK(NULL);
+}
+
+void cmdsDAC_getVoltage(terminalCmd_t *cmd)
+{
+  /* Guard clauses */
+  if (cmd->argc < CMDS_DAC_VSET_ARGC)
+  {
+    terminal_NAK("Not enough arguments");
+    return;
+  }
+  else if (cmd->argc > CMDS_DAC_VSET_ARGC)
+  {
+    terminal_NAK("Too much arguments");
+    return;
+  }
+
+  cmdsDAC_parseArgs(cmd);
+  // terminal_ACK(NULL);
+  // terminal_send(termOptions.lineTerm.stdlineTerm);
+
+  _dacOutputString.nFill = 0;
+  _dacOutputString.string[0] = '\0';
+  for (uint16_t iQuery = 0; iQuery < _dacChRequests.nChannels; iQuery++)
+  {
+    if (_dacChRequests.ChRequests[iQuery].requested == bTrue)
+    {
+      _dacChRequests.ChRequests[iQuery].requested = bFalse;
+      sprintf(&_dacOutputString.string[_dacOutputString.nFill], "%.4f,", _dacChRequests.ChRequests[iQuery].voltage);
+      _dacOutputString.nFill += strlen(&_dacOutputString.string[_dacOutputString.nFill]);
+    }
+  }
+  _dacOutputString.nFill--;
+  _dacOutputString.string[_dacOutputString.nFill] = '\0'; // Remove tailing ','
+  terminal_ACK(_dacOutputString.string);
 }

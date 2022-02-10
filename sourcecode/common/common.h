@@ -23,7 +23,7 @@
 /*******************************\
 | Enum/Struct/Union
 \*******************************/
-enum cBoolean
+typedef enum
 {
   bFalse = 0,
   bOff = 0,
@@ -32,8 +32,8 @@ enum cBoolean
   bTrue = 1,
   bOn = 1,
   bYes = 1,
-};
-typedef enum cBoolean cBool;
+} cBool;
+// typedef enum cBoolean cBool;
 
 /*******************************\
 | Function declaration

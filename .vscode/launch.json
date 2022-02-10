@@ -20,11 +20,15 @@
       ],
       "runToMain": true,
       // "preLaunchCommands": [
+      //   "del",
       // ],
       "postLaunchCommands": [
-        "del",
         // "set output-radix 16",
-      ]
+        "del",
+      ],
+      // "openOCDPreConfigLaunchCommands": [
+      //   "del",
+      // ],
     }
   ]
 }

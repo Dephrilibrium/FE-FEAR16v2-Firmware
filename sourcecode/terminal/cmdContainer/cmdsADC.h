@@ -11,14 +11,14 @@
 /*******************************\
 | Defines
 \*******************************/
-#define CMDS_ADC_VGET "VGET"
+#define CMDS_ADC_VGET "ADC:GET"
 
 #define CMDS_ADC_VGET_ARGC 3
 #define CMDS_ADC_VGET_CHAININDEX 1
 #define CMDS_ADC_VGET_CHAIN_CF "CF"
 #define CMDS_ADC_VGET_CHAIN_UDRP "UDRP"
-#define CMDS_ADC_VGET_CHANNELINDEX 2
-#define CMDS_ADC_VGET_CHANNELSEPARTOR "," // Only 1 character allowed!
+#define CMDS_ADC_VGET_CHANNEL_STARTINDEX 2
+#define CMDS_ADC_VGET_CHANNEL_SEPARTOR "," // Only 1 character allowed!
 #define CMDS_ADC_VGET_CHANNEL_FROM_TO_SEPARTOR "-"
 
 /*******************************\
