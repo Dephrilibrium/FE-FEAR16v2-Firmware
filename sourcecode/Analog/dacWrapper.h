@@ -139,6 +139,8 @@ void dac_queryPack(enum dac_packIndex packIndex);
 // void dac_queryPackageBlocking(enum dac_packIndex iPack, uint8_t nPacks); // Sends a pack and query the response (changes confPack to NOP-Write)
 
 void dac_setChVoltage(uint16_t channel, float voltage);
+void dac_updateChVoltage(uint16_t channel, float voltage);
+void dac_sendChVoltage(uint16_t channel);
 
 void testvalues(void);
 #endif

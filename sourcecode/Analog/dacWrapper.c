@@ -475,6 +475,12 @@ void dac_queryPack(enum dac_packIndex packIndex)
 
 void dac_setChVoltage(uint16_t channel, float voltage)
 {
+  dac_updateChVoltage(channel, voltage);
+  dac_sendChVoltage(channel);
+}
+
+void dac_updateChVoltage(uint16_t channel, float voltage)
+{
   if (channel >= DAC_NALLVOLTPACKS) // Out of range
     return;
 
@@ -482,7 +488,10 @@ void dac_setChVoltage(uint16_t channel, float voltage)
 
   tx->VPacks[channel].CmdByte = DAC_WRITE | ((channel % DAC_VOLTPACKS) + DAC_REG_ADDR_CH_OFFSET); // Keep channel in Range and add the ch-offset
   tx->VPacks[channel].Data = dac_convertFloatTo16BitRange(voltage);
+}
 
+void dac_sendChVoltage(uint16_t channel)
+{
   dac_queryPack(channel);
 }
 

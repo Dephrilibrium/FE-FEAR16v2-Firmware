@@ -29,7 +29,9 @@
 typedef struct
 {
   enum adcChain targetChain;
-  uint16_t nChannels;
+  uint16_t nADCs;
+  uint16_t nChPerADC;
+  uint16_t nAllChannels;
   struct
   {
     cBool requested;
@@ -52,7 +54,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd);
 /*******************************\
 | Global variables
 \*******************************/
-adcChUpdRequest_t _adcChRequests = {.nChannels = ADC_NALLCHPACKS, .ChRequests = {{0}}};
+adcChUpdRequest_t _adcChRequests = {.nADCs = ADC_NADCS, .nChPerADC = ADC_CHANNELS, .nAllChannels = ADC_NALLCHPACKS, .ChRequests = {{0}}};
 adcOutputString_t _adcOutputString = {.nSize = CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE, .nFill = 0, .string = {0}};
 
 /*******************************\
@@ -108,7 +110,7 @@ void cmdsADC_parseArgs(terminalCmd_t *cmd)
     for (uint8_t iCh = fromCh; iCh <= toCh; iCh++)
     {
       // Jump over channels which not exists
-      if (iCh >= _adcChRequests.nChannels)
+      if (iCh >= _adcChRequests.nAllChannels)
         continue;
 
       _adcChRequests.ChRequests[iCh].requested = bTrue;
@@ -145,7 +147,7 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
   adc_measurementValues_t *measurements = adc_grabMeasurements();
   _adcOutputString.nFill = 0;
   _adcOutputString.string[0] = '\0';
-  for (uint16_t iQuery = 0; iQuery < _adcChRequests.nChannels; iQuery++)
+  for (uint16_t iQuery = 0; iQuery < _adcChRequests.nAllChannels; iQuery++)
   {
     if (_adcChRequests.ChRequests[iQuery].requested == bTrue)
     {

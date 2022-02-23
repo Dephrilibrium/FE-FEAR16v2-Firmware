@@ -28,7 +28,9 @@
 \*******************************/
 struct dacChUpdRequest
 {
-  uint16_t nChannels;
+  uint16_t nDACs;
+  uint16_t nChPerDAC;
+  uint16_t nAllChannels;
   struct
   {
     cBool requested;
@@ -51,7 +53,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd);
 /*******************************\
 | Global variables
 \*******************************/
-struct dacChUpdRequest _dacChRequests = {.nChannels = DAC_NALLVOLTPACKS, .ChRequests = {{0}}};
+struct dacChUpdRequest _dacChRequests = {.nDACs = DAC_NDACS, .nChPerDAC = DAC_VOLTPACKS, .nAllChannels = DAC_NALLVOLTPACKS, .ChRequests = {{0}}};
 dacOutputString_t _dacOutputString = {.nSize = CMDS_DAC_OUTPUTSTRINGBUFFER_SIZE, .nFill = 0, .string = {0}};
 
 /*******************************\
@@ -112,7 +114,7 @@ void cmdsDAC_parseArgs(terminalCmd_t *cmd)
     for (uint8_t iCh = fromCh; iCh <= toCh; iCh++)
     {
       // Jump over channels which not exists
-      if (iCh >= _dacChRequests.nChannels)
+      if (iCh >= _dacChRequests.nAllChannels)
         continue;
 
       _dacChRequests.ChRequests[iCh].requested = bTrue;
@@ -138,13 +140,25 @@ void cmdsDAC_setVoltage(terminalCmd_t *cmd)
   }
 
   cmdsDAC_parseArgs(cmd);
-  for (uint16_t iQuery = 0; iQuery < _dacChRequests.nChannels; iQuery++)
+  uint16_t iQuery = 0;
+  for (uint16_t iCh = 0; iCh < _dacChRequests.nAllChannels; iCh++)
   {
-    if (_dacChRequests.ChRequests[iQuery].requested == bTrue)
+    iQuery = iCh;
+    if (_dacChRequests.ChRequests[iCh].requested == bTrue) // Check if channel is requested
     {
-      _dacChRequests.ChRequests[iQuery].requested = bFalse;
-      dac_setChVoltage(iQuery, _dacChRequests.ChRequests[iQuery].voltage);
+      // Run through all DACs of a chain, update values and reset request
+      for (uint8_t iDAC = 0; iDAC < _dacChRequests.nDACs; iDAC++)
+      {
+        iQuery = (iCh % _dacChRequests.nChPerDAC) + (_dacChRequests.nChPerDAC * iDAC);
+        _dacChRequests.ChRequests[iQuery].requested = bFalse;
+        dac_updateChVoltage(iQuery, _dacChRequests.ChRequests[iQuery].voltage);
+      }
+      dac_sendChVoltage(iCh);
     }
+
+    //   _dacChRequests.ChRequests[iQuery].requested = bFalse;
+    //   dac_setChVoltage(iCh, _dacChRequests.ChRequests[iQuery].voltage);
+    // }
   }
   terminal_ACK(NULL);
 }
@@ -169,7 +183,7 @@ void cmdsDAC_getVoltage(terminalCmd_t *cmd)
 
   _dacOutputString.nFill = 0;
   _dacOutputString.string[0] = '\0';
-  for (uint16_t iQuery = 0; iQuery < _dacChRequests.nChannels; iQuery++)
+  for (uint16_t iQuery = 0; iQuery < _dacChRequests.nAllChannels; iQuery++)
   {
     if (_dacChRequests.ChRequests[iQuery].requested == bTrue)
     {
