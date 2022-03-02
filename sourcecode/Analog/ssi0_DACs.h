@@ -15,6 +15,10 @@
 \*******************************/
 #define SSI0_BUFFERSIZE (DAC_NDACS * DAC_PACK_NBYTES) // Max-Transfer can be "DACs * Bytes per DAC" in Bytes
 
+// DMA
+#define SSI0_RX_DMA_CHNUM 10
+#define SSI0_TX_DMA_CHNUM 11
+
 /*******************************\
 | Enum/Struct/Union
 \*******************************/

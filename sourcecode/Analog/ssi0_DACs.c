@@ -68,6 +68,10 @@
 #define SSI0_SR_RFF BIT(3)  // Rx FIFO Full
 #define SSI0_SR_BUSY BIT(4) // SSI0 Sending (busy-bit)
 
+// DMA
+#define SSI0_UDMA_RXDMAEN BIT(0)
+#define SSI0_UDMA_TXDMAEN BIT(1)
+
 #pragma endregion Local Defines
 
 /*******************************\
@@ -180,6 +184,21 @@ void ssi0_init(enum ssi_clkRate clkRate)
                                   //  | SSI0_CR0_SPO;      // Clock Polarity high
                | SSI0_CR0_SPH;    // Take Data on second clock edge
   SSI0->CR0 &= ~SSI0_CR0_SPO;     // Clock Polarity low
+  SSI0->IM |= BIT(2)              // Local rx-Interrupts
+              | BIT(3);           // Local tx-Interrupts
+
+  // DMA Configuration
+  dma_init();
+  SSI0->DMACTL |= SSI0_UDMA_RXDMAEN | SSI0_UDMA_TXDMAEN;
+  uint32_t chBitMask = BIT(SSI0_RX_DMA_CHNUM) | BIT(SSI0_TX_DMA_CHNUM);
+  UDMA->PRIOCLR = chBitMask;
+  UDMA->ALTCLR = chBitMask;
+  UDMA->USEBURSTCLR = chBitMask;
+  UDMA->REQMASKCLR = chBitMask;
+  UDMA->CHMAP1 &= ~(OPTION(0xF, 8) | OPTION(0xF, 12));
+  UDMA->CHMAP1 |= OPTION(0x0, 8)     // Map CH10 to SSI0 Rx
+                  | OPTION(0x0, 12); // Map Ch11 to SSI0 Tx
+
   ssi_enable(SSI0, bOn);
 
   // Prepare DAC for regular use

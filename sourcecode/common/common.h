@@ -6,6 +6,7 @@
 \*******************************/
 /* Std-Libs */
 #include "stdint.h"
+#include "stddef.h"
 
 /* Project specific */
 

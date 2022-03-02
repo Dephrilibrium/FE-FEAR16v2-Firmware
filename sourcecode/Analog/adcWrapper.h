@@ -74,6 +74,7 @@ typedef struct
 {
     // Sizes and Counts
     const uint16_t nChains;
+    const uint16_t nADCs;
     const uint16_t nChannels;
     const uint16_t nWords;
 

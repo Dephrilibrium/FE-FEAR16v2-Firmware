@@ -43,6 +43,7 @@ enum ssiDataSize
 
 enum ssi_sendingStatus
 {
+  ssi_sending_unknown = -1,
   ssi_sending_idle = 0,
   ssi_sending_busy,
 };
@@ -62,15 +63,18 @@ void ssi_changeClkRate(SSI0_Type *ssi, enum ssi_clkRate clkRate);
 void ssi_changeDataSize(SSI0_Type *ssi, enum ssiDataSize dSize);
 
 enum ssi_sendingStatus ssi_SendindStatus(SSI0_Type *ssi);
-enum ssi_FIFOStatus ssi_RxFifoStatus(SSI0_Type *ssi);
-enum ssi_FIFOStatus ssi_TxFifoStatus(SSI0_Type *ssi);
+enum ssi_sendingStatus ssi_TransceiveStatus(SSI0_Type *ssi);
+// enum ssi_FIFOStatus ssi_RxFifoStatus(SSI0_Type *ssi); // Shifted to local definition
+// enum ssi_FIFOStatus ssi_TxFifoStatus(SSI0_Type *ssi);
 
 void ssi_clearRxFIFO(SSI0_Type *ssi);
 
-void ssi_transmit8Bit(SSI0_Type *ssi, const uint8_t *serializedStream, uint16_t bytes_n);
-void ssi_receive8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
+// void ssi_transmit8Bit(SSI0_Type *ssi, const uint8_t *serializedStream, uint16_t bytes_n);
+// void ssi_receive8Bit(SSI0_Type *ssi, uint8_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
+void ssi_transceive8Bit(SSI0_Type *ssi, const uint8_t *serializedOutput, uint8_t *serializedInput, uint16_t nBytes);
 
-void ssi_transmit16Bit(SSI0_Type *ssi, const uint16_t *serializedStream, uint16_t bytes_n);
-void ssi_receive16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
+// void ssi_transmit16Bit(SSI0_Type *ssi, const uint16_t *serializedStream, uint16_t bytes_n);
+// void ssi_receive16Bit(SSI0_Type *ssi, uint16_t *serializedStream, uint16_t *nBytes, uint16_t nMaxBytes);
+void ssi_transceive16Bit(SSI0_Type *ssi, const uint16_t *serializedOutput, uint16_t *serializedInput, uint16_t nWords);
 
 #endif

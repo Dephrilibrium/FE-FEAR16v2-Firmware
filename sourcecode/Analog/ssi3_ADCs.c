@@ -5,6 +5,7 @@
 
 /* Project specific */
 #include "ssi3_ADCs.h"
+#include "dma.h"
 
 /*******************************\
 | Local Defines
@@ -73,6 +74,10 @@
 #define SSI_SR_RNE BIT(2)  // Rx FIFO Not Empty
 #define SSI_SR_RFF BIT(3)  // Rx FIFO Full
 #define SSI_SR_BUSY BIT(4) // SSI0 Sending (busy-bit)
+
+// DMA
+#define SSI3_UDMA_RXDMAEN BIT(0)
+#define SSI3_UDMA_TXDMAEN BIT(1)
 
 #pragma endregion Local Defines
 
@@ -207,6 +212,21 @@ void ssi3_init(enum ssi_clkRate clkRate)
                  | SSI_CR0_SPO;    // Clock Polarity: Idle = high
     SSI3->CR0 &= ~SSI_CR0_SPH;     // Take data on first clock-edge!
     // SSI3->CR0 &= ~SSI_CR0_SPO;     // Clock Polarity low
+    SSI3->IM |= BIT(2)    // Local rx-Interrupts
+                | BIT(3); // Local tx-Interrupts
+
+    // DMA Configuration
+    dma_init();
+    SSI3->DMACTL |= SSI3_UDMA_RXDMAEN | SSI3_UDMA_TXDMAEN;
+    uint32_t chBitMask = BIT(SSI3_RX_DMA_CHNUM) | BIT(SSI3_TX_DMA_CHNUM);
+    UDMA->PRIOCLR = chBitMask;
+    UDMA->ALTCLR = chBitMask;
+    UDMA->USEBURSTCLR = chBitMask;
+    UDMA->REQMASKCLR = chBitMask;
+    UDMA->CHMAP1 &= ~(OPTION(0xF, 24) | OPTION(0xF, 28));
+    UDMA->CHMAP1 |= OPTION(0x2, 24)    // Map CH14 to SSI3 Rx
+                    | OPTION(0x2, 28); // Map Ch15 to SSI3 Tx
+
     ssi_enable(SSI3, bOn);
 
     // Prepare DAC for regular use
@@ -217,6 +237,8 @@ void ssi3_init(enum ssi_clkRate clkRate)
     // ssi0_ldacDACs(bFalse);   // Already disabled sychronous output
 
     // ssi0_clearRxFIFO(); // Be sure nothing undefined is stored in RxFIFO during the init-process
+
+    // DMA
 }
 
 void ssi3_setClkRate(enum ssi_clkRate clkRate)
@@ -227,7 +249,7 @@ void ssi3_setClkRate(enum ssi_clkRate clkRate)
     ssi_enable(SSI3, bOn);
 }
 
-// void ssi3_changeClkRate(enum ssi_clkRate clkRate)
+// voidß ssi3_changeClkRate(enum ssi_clkRate clkRate)
 // {
 //     if (clkRate > PIOSC_MHZ)
 //         return;

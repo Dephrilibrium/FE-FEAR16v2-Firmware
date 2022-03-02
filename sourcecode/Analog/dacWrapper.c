@@ -379,27 +379,30 @@ void dac_prepareTxData(enum dac_packIndex packIndex)
   }
 
   // Prepare Tx
+  // Packs 0-7 has to be stored at last in the stream, because thats what the first DAC will get as data
   _outputStream.targetPack = packIndex;
   enum dac_packIndex dataStartPack = dataOffAdd + (packIndex % dataOffMul); // Determine starterpackage
-  for (int iPack = _outputStream.nPacks - 1; iPack >= 0; iPack--)
+  uint8_t iMaxPack = _outputStream.nPacks - 1;
+  for (int iPack = iMaxPack; iPack >= 0; iPack--)
   // for (int iPack = 0; iPack < _outputStream.nPacks; iPack++)
   {
-    enum dac_packIndex dataPack = dataStartPack + iPack * dataOffMul;
+    enum dac_packIndex dataPack = dataStartPack + (iMaxPack - iPack) * dataOffMul;
     _outputStream.Packs[iPack].CmdByte = _DAC_DataOut.Packs[dataPack].CmdByte;
     // _outputStream.Packs[iPack].Data = swap_word(_DAC_DataOut.Packs[_outputStream.targetPack + iPack].Data);
-    _outputStream.Packs[iPack].Data = _DAC_DataOut.Packs[dataPack].Data;
+    _outputStream.Packs[iPack].Data = swap_word(_DAC_DataOut.Packs[dataPack].Data);
   }
 }
 
 void dac_fetchRxData(enum dac_packIndex packIndex)
 {
-  // Get and convert Rx when not the first input!
+  // Get and convert Rx by one package shifted! (Sending new package leads to the answer of the previous one!)
+  // Target-pack assignment at function-end (collapse/expand following if!)
   if (_inputStream.targetPack < _DAC_DataIn.nPacks)
   {
     // Receive into input-Buffer
     // HINT! Debugger reads out SSI0->DR (removes values from FIFO!)
-    while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
-      ssi_receive8Bit(SSI0, _inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
+    // while (_inputStream.nBytes < _inputStream.nSize) // Wait for the full package
+    //   ssi_receive8Bit(SSI0, _inputStream.SerializedStream, &_inputStream.nBytes, _inputStream.nSize);
 
     // Determine package depending offset values
     int16_t dataOffMul = 0;
@@ -417,13 +420,13 @@ void dac_fetchRxData(enum dac_packIndex packIndex)
 
     enum dac_packIndex dataStartPack = dataOffAdd + (packIndex % dataOffMul); // Determine starterpackage
     // Reconvert into datastructure
-    for (int iPack = _inputStream.nPacks - 1; iPack >= 0; iPack--)
+    for (int iPack = 0; iPack < _inputStream.nPacks; iPack++)
     {
       enum dac_packIndex dataPack = dataStartPack + iPack * dataOffMul;
       // uint8_t iDataInPack = (_inputStream.nPacks - 1) - iPack;
       _DAC_DataIn.Packs[dataPack].CmdByte = _inputStream.Packs[iPack].CmdByte;
       // _DAC_DataIn.Packs[_inputStream.targetPack + iPack].Data = swap_word(_inputStream.Packs[iPack].Data);
-      _DAC_DataIn.Packs[dataPack].Data = _inputStream.Packs[iPack].Data;
+      _DAC_DataIn.Packs[dataPack].Data = swap_word(_inputStream.Packs[iPack].Data);
     }
 
     _inputStream.nBytes = 0; // Everything fetched -> Clear received bytes for next round
@@ -464,9 +467,10 @@ void dac_queryPack(enum dac_packIndex packIndex)
 
   // Send current; receive previous
   dac_chipselectBlocking(bTrue);
-  ssi_transmit8Bit(SSI0, _outputStream.SerializedStream, _outputStream.nBytes);
-  while (ssi_SendindStatus(SSI0) == ssi_sending_busy)
-    ; // Wait for fully transmitted
+  // ssi_transmit8Bit(SSI0, _outputStream.SerializedStream, _outputStream.nBytes);
+  ssi_transceive8Bit(SSI0, _outputStream.SerializedStream, _inputStream.SerializedStream, _outputStream.nBytes);
+  // while (ssi_SendindStatus(SSI0) == ssi_sending_busy)
+  //   ; // Wait for fully transmitted
   dac_chipselectBlocking(bFalse);
 
   // Get received-data and set the next package index

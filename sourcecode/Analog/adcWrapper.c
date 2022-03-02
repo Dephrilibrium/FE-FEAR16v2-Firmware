@@ -8,6 +8,7 @@
 /* Project specific */
 #include "common.h"
 #include "adcWrapper.h"
+#include "dma.h"
 #include "ssi3_ADCs.h"
 #include "preciseTime.h"
 #include "swap.h"
@@ -47,6 +48,7 @@
 typedef struct
 {
     const uint16_t nChains;
+    const uint16_t nADCs;
     const uint16_t nPacks;
     const uint16_t nWords;
 
@@ -55,16 +57,19 @@ typedef struct
 
     struct
     {
+        uint32_t confPacks[ADC_NALLCONFPACKS];
         union
         {
-            uint32_t confPacks[ADC_NALLCONFPACKS];
             uint16_t confStream[ADC_CPACKS_NALLWORDS];
+            uint32_t confStreamSwapped[ADC_NALLCONFPACKS];
         };
-        union // Currently not implemented
+        uint32_t responseConf[ADC_NALLCONFPACKS];
+        union
         {
-            uint32_t responseConf[ADC_NALLCONFPACKS];
             uint16_t responseStream[ADC_CPACKS_NALLWORDS];
+            uint32_t responseStreamSwapped[ADC_NALLCONFPACKS];
         };
+        // uint16_t responseStream[ADC_CPACKS_NALLWORDS];
     } chains[ADC_NCHAINS];
 } adc_sendConf_t;
 
@@ -77,6 +82,7 @@ typedef struct
 /*******************************\
 | Local function declarations
 \*******************************/
+void adcs_dmaConfig(void);
 void adc_wipeADCData(void);
 void adc_setupSequence(void);
 void adc_setCPacks(uint32_t config);
@@ -98,6 +104,7 @@ void adc_convertRaw2Double(enum adcChain chain);
 \*******************************/
 adc_sendConf_t _configuration = {
     .nChains = ADC_NCHAINS,
+    .nADCs = ADC_NADCS,
     .nPacks = ADC_NALLCONFPACKS,
     .nWords = ADC_CPACKS_NALLWORDS,
     .stdConf = ADC_CONF_REDAC(1023) // Scale VRef -> 2.5V
@@ -115,13 +122,14 @@ adc_sendConf_t _configuration = {
                                     //   | ADC_CONF_BUSYPOL     // Busy-signal: lo-active
                                     //   | ADC_CONF_BUSY_OR_INT // Use as Interrupt-signal
                                     //   | ADC_CONF_CLKOUT_EN   // Enable clock-out (Pin 34)
-                                    //   | ADC_CONF_CLKSEL      // Use external conversion clock
+                                    //   | ADC_CONF_CLKSEL    b  // Use external conversion clock
                                     //   | ADC_CONF_READ_EN     // Read config-register in the next 2 cycles!
                                     //   | ADC_CONF_WRITE_EN   // Update register contents
     ,
     .zeroStream = {0},
-    .chains = {{{{0}}}}};
+    .chains = {{{0}}}};
 adc_measurementValues_t _measVal = {.nChains = ADC_NCHAINS,
+                                    .nADCs = ADC_NADCS,
                                     .nChannels = ADC_NALLCHPACKS,
                                     .nWords = ADC_CHANNELS_NALLWORDS,
                                     .zeroStream = {0},
@@ -134,9 +142,33 @@ adc_voltRange_t _range = {.targeRange = ADC_POSITIVE_RANGE,
 \*******************************/
 void adcs_init(void)
 {
+    // #define nWordSize 16
+    //     uint16_t output[nWordSize] = {
+    //         0x01,
+    //         0x02,
+    //         0x03,
+    //         0x04,
+    //         0x05,
+    //         0x06,
+    //         0x07,
+    //         0x08,
+    //         0x09,
+    //         0x0a,
+    //         0x0b,
+    //         0x0c,
+    //         0x0d,
+    //         0x0e,
+    //         0x0f,
+    //         0x12};
+    //     uint16_t input[nWordSize] = {0};
+
     ssi3_init(ADC_SSI_CLKRATE);
     adc_wipeADCData();
     adc_setupSequence();
+
+    // adc_chipselectBlocking(adcChain_UDrp, bTrue);
+    // ssi_transceive16Bit(SSI3, output, input, nWordSize);
+    // adc_chipselectBlocking(adcChain_UDrp, bFalse);
 }
 
 void adc_wipeADCData(void)
@@ -153,7 +185,10 @@ void adc_setCPacks(uint32_t conf)
 {
     for (uint8_t chainIndex = 0; chainIndex < ADC_NCHAINS; chainIndex++)
         for (uint16_t cIndex = 0; cIndex < _configuration.nPacks; cIndex++)
+        {
             _configuration.chains[chainIndex].confPacks[cIndex] = conf;
+            _configuration.chains[chainIndex].confStreamSwapped[cIndex] = swap_dword(conf);
+        }
 }
 
 void adc_setVPacks(double value)
@@ -198,19 +233,27 @@ void adc_setupSequence(void)
     adc_setCPacks(_configuration.stdConf | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN);
 
     // Send config one by one (could also be done simultaneously, but to avoid may occuring shortcuts between slave outputs)
-    uint16_t wordCount = 0;
+    // uint16_t wordCount = 0;
     for (uint8_t chainIndex = 0; chainIndex < _configuration.nChains; chainIndex++)
     {
+        // _configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] = 0;
         adc_chipselectBlocking(chainIndex, bOn);
-        ssi_transmit16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.nWords);
+        // ssi_transmit16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.nWords / 2);
+        ssi_transceive16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.chains[chainIndex].responseStream, _configuration.nWords / 2); // MOSI connected to both MISO-Pins of the ADCs
         adc_chipselectBlocking(chainIndex, bOff);
-        while (_configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] == 0)
-        {
-            adc_chipselectBlocking(chainIndex, bOn);
-            ssi_transmit16Bit(SSI3, _configuration.zeroStream, _configuration.nWords);
-            adc_chipselectBlocking(chainIndex, bOff);
-            ssi_receive16Bit(SSI3, _configuration.chains[chainIndex].responseStream, &wordCount, _configuration.nWords);
-        }
+        // ssi_clearRxFIFO(SSI3);
+        // while (_configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] == 0)
+        // for (uint8_t count = 6; count; count--)
+        // {
+        adc_chipselectBlocking(chainIndex, bOn);
+        for (uint8_t iSend = 4; iSend; iSend--)
+            ssi_transceive16Bit(SSI3, NULL, _configuration.chains[chainIndex].confStream, _configuration.nWords); // Response is via Daisy-Chain
+        // ssi_transceive16Bit(SSI3, _configuration.zeroStream, _configuration.chains[chainIndex].responseStream, _configuration.nWords); // Alternatively
+        adc_chipselectBlocking(chainIndex, bOff);
+        // ssi_receive16Bit(SSI3, _configuration.chains[chainIndex].responseStream, &wordCount, _configuration.nWords);
+        // ssi_clearRxFIFO(SSI3);
+
+        // }
     }
 }
 
@@ -233,24 +276,43 @@ void adc_reverseRaw(enum adcChain chain)
 {
     int16_t bakVal;
 
-    uint16_t chPerADC = ADC_CHANNELS;
+    // uint16_t chPerADC = ADC_CHANNELS;
+    // uint16_t chPerADC = _measVal.nChannels;
 
-    uint16_t iLowerRaw, iUpperRaw, iUpperCopy;
-    uint16_t halfIndex = chPerADC / 2;
+    // uint16_t iLowerRaw, iUpperRaw, iUpperCopy;
+    // uint16_t halfIndex = chPerADC / 2;
+    uint16_t iLowerADC, iUpperADC;
+    uint16_t iLowerCopy, iUpperCopy;
+    uint16_t iHalfADCs = _measVal.nADCs / 2;
+    uint16_t chPerADC = _measVal.nChannels / _measVal.nADCs;
 
-    for (uint16_t iChain = 0; iChain < _measVal.nChains; iChain++)
+    for (iLowerADC = 0; iLowerADC < iHalfADCs; iLowerADC++)
     {
-        iUpperCopy = chPerADC * (iChain + 1);
-        iUpperRaw = iUpperCopy - halfIndex;
-        for (iLowerRaw = iChain * chPerADC; iLowerRaw < iUpperRaw; iLowerRaw++)
+        iUpperADC = (_measVal.nADCs - 1) - iLowerADC;
+        for (uint16_t iCh = 0; iCh < chPerADC; iCh++)
         {
-            iUpperCopy--;
+            iLowerCopy = iLowerADC * chPerADC + iCh;
+            iUpperCopy = iUpperADC * chPerADC + iCh;
 
-            bakVal = _measVal.chains[chain].raw[iLowerRaw];
-            _measVal.chains[chain].raw[iLowerRaw] = _measVal.chains[chain].raw[iUpperCopy];
+            bakVal = _measVal.chains[chain].raw[iLowerCopy];
+            _measVal.chains[chain].raw[iLowerCopy] = _measVal.chains[chain].raw[iUpperCopy];
             _measVal.chains[chain].raw[iUpperCopy] = bakVal;
         }
     }
+
+    // for (uint16_t iChain = 0; iChain < _measVal.nChains; iChain++)
+    // {
+    // iUpperCopy = chPerADC * (iChain + 1);
+    // iUpperRaw = iUpperCopy - halfIndex;
+    // for (iLowerRaw = iChain * chPerADC; iLowerRaw < iUpperRaw; iLowerRaw++)
+    // {
+    //     iUpperCopy--;
+
+    //     bakVal = _measVal.chains[chain].raw[iLowerRaw];
+    //     _measVal.chains[chain].raw[iLowerRaw] = _measVal.chains[chain].raw[iUpperCopy];
+    //     _measVal.chains[chain].raw[iUpperCopy] = bakVal;
+    // }
+    // }
 }
 
 void adc_convertRaw2Double(enum adcChain chain)
@@ -272,11 +334,12 @@ void adc_takeMeasurement(enum adcChain chain)
     while (ssi3_ADCsBusy(chain))
         ; // Wait for ADCs finished sampling
 
-    uint16_t wordCnt = 0;
+    // uint16_t wordCnt = 0;
     adc_chipselectBlocking(chain, bTrue);
-    ssi_transmit16Bit(SSI3, _measVal.zeroStream, _measVal.nWords);
+    // ssi_transmit16Bit(SSI3, _measVal.zeroStream, _measVal.nWords);
+    ssi_transceive16Bit(SSI3, _measVal.zeroStream, (uint16_t *)_measVal.chains[chain].raw, _measVal.nWords);
     adc_chipselectBlocking(chain, bFalse);
-    ssi_receive16Bit(SSI3, (uint16_t *)_measVal.chains[chain].raw, &wordCnt, _measVal.nWords);
+    // ssi_receive16Bit(SSI3, (uint16_t *)_measVal.chains[chain].raw, &wordCnt, _measVal.nWords);
     // ssi_clearRxFIFO(SSI3);
 
     adc_convertRaw2Double(chain);

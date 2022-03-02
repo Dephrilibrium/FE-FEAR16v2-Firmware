@@ -67,8 +67,8 @@ enum dac_packIndex
 // uint8_t Serialized[DAC_PACK_NBYTES];
 typedef struct
 {
-  uint16_t Data;
   uint8_t CmdByte;
+  uint16_t Data;
 } __attribute__((packed)) DAC_StructuralDataPack_t;
 // typedef union DAC_StructuralDataPack DAC_StructuralDataPack_t;
 
