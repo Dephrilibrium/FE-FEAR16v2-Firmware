@@ -18,7 +18,8 @@
       "configFiles": [
         "board/ek-tm4c123gxl.cfg"
       ],
-      "runToMain": true,
+      // "runToMain": true, // outdated
+      "runToEntryPoint": "main",
       // "preLaunchCommands": [
       //   "del",
       // ],

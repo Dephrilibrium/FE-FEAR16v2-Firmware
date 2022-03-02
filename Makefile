@@ -161,9 +161,9 @@ LDSCRIPT = TM4C123GH6PM/TM4C123GH6PM.ld
 #LIBS = -lc -lm -lnosys 
 LIBS=
 LIBDIR = 
-LDFLAGS = $(MCU) --specs=nosys.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS)
-#  -mthumb # Already included to MCU
-# -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU) --specs=nosys.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) \
+#-Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref,--gc-sections
+#-mthumb # Already included to MCU \
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin

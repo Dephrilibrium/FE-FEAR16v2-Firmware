@@ -54,7 +54,7 @@ loop_copydata:
 
 	// Branch to user code
 	//  Main needs to be called by _start to init the C-runtime (otherwise stuff like strtok won't work!)
-	bl	_start 
+	 bl	_start 
 
 	.pool
 	.size Reset_Handler, .-Reset_Handler
@@ -66,6 +66,9 @@ loop_copydata:
 	.type Default_Handler, %function
 
 Default_Handler:
+	b	.
+
+Default_DeactivatableIRs_Handler:
 	b	.
 
 	.size Default_Handler, .-Default_Handler
@@ -236,134 +239,140 @@ __Vectors:
 
 	.size __Vectors, .-__Vectors
 
-	.macro def_irq_handler handler_name
+	.macro def_InactivatableIRs_handler handler_name
 	.weak \handler_name
 	.set \handler_name, Default_Handler
 	.endm
 
-	def_irq_handler	NMI_Handler		// Default_Handler
-	def_irq_handler	HardFault_Handler	// Default_Handler
-	def_irq_handler	MemManage_Handler	// Default_Handler
-	def_irq_handler	BusFault_Handler	// Default_Handler
-	def_irq_handler	UsageFault_Handler	// Default_Handler
-	def_irq_handler	SVC_Handler		// Default_Handler*/
-	def_irq_handler	DebugMon_Handler	// Default_Handler
-	def_irq_handler	PendSV_Handler		// Default_Handler
-	def_irq_handler	SysTick_Handler		// Default_Handler
-	def_irq_handler	GPIOPortA_Handler	// Default_Handler
-	def_irq_handler	GPIOPortB_Handler	// Default_Handler
-	def_irq_handler	GPIOPortC_Handler	// Default_Handler
-	def_irq_handler	GPIOPortD_Handler	// Default_Handler
-	def_irq_handler	GPIOPortE_Handler	// Default_Handler
-	def_irq_handler	UART0_Handler		// Default_Handler
-	def_irq_handler	UART1_Handler		// Default_Handler
-	def_irq_handler	SSI0_Handler		// Default_Handler
-	def_irq_handler	I2C0_Handler		// Default_Handler
-	def_irq_handler	PWM0Fault_Handler	// Default_Handler
-	def_irq_handler	PWM0Generator0_Handler	// Default_Handler
-	def_irq_handler	PWM0Generator1_Handler	// Default_Handler
-	def_irq_handler	PWM0Generator2_Handler	// Default_Handler
-	def_irq_handler	Quadrature0_Handler	// Default_Handler
-	def_irq_handler	ADC0Seq0_Handler	// Default_Handler
-	def_irq_handler	ADC0Seq1_Handler	// Default_Handler
-	def_irq_handler	ADC0Seq2_Handler	// Default_Handler
-	def_irq_handler	ADC0Seq3_Handler	// Default_Handler
-	def_irq_handler	WDT_Handler		// Default_Handler
-	def_irq_handler	Timer0A_Handler		// Default_Handler
-	def_irq_handler	Timer0B_Handler		// Default_Handler
-	def_irq_handler	Timer1A_Handler		// Default_Handler
-	def_irq_handler	Timer1B_Handler		// Default_Handler
-	def_irq_handler	Timer2A_Handler		// Default_Handler
-	def_irq_handler	Timer2B_Handler		// Default_Handler
-	def_irq_handler	Comp0_Handler		// Default_Handler
-	def_irq_handler	Comp1_Handler		// Default_Handler
-	def_irq_handler	Comp2_Handler		// Default_Handler
-	def_irq_handler	SysCtl_Handler		// Default_Handler
-	def_irq_handler	FlashCtl_Handler	// Default_Handler
-	def_irq_handler	GPIOPortF_Handler	// Default_Handler
-	def_irq_handler	GPIOPortG_Handler	// Default_Handler
-	def_irq_handler	GPIOPortH_Handler	// Default_Handler
-	def_irq_handler	UART2_Handler		// Default_Handler
-	def_irq_handler	SSI1_Handler		// Default_Handler
-	def_irq_handler	Timer3A_Handler		// Default_Handler
-	def_irq_handler	Timer3B_Handler		// Default_Handler
-	def_irq_handler	I2C1_Handler		// Default_Handler
-	def_irq_handler	Quadrature1_Handler	// Default_Handler
-	def_irq_handler	CAN0_Handler		// Default_Handler
-	def_irq_handler	CAN1_Handler		// Default_Handler
-	def_irq_handler	CAN2_Handler		// Default_Handler
-	def_irq_handler	Ethernet_Handler	// Default_Handler
-	def_irq_handler	Hibernate_Handler	// Default_Handler
-	def_irq_handler	USB0_Handler		// Default_Handler
-	def_irq_handler	PWM0Generator3_Handler	// Default_Handler
-	def_irq_handler	uDMA_Handler		// Default_Handler
-	def_irq_handler	uDMA_Error		// Default_Handler
-	def_irq_handler	ADC1Seq0_Handler	// Default_Handler
-	def_irq_handler	ADC1Seq1_Handler	// Default_Handler
-	def_irq_handler	ADC1Seq2_Handler	// Default_Handler
-	def_irq_handler	ADC1Seq3_Handler	// Default_Handler
-	def_irq_handler	I2S0_Handler		// Default_Handler
-	def_irq_handler	ExtBus_Handler		// Default_Handler
-	def_irq_handler	GPIOPortJ_Handler	// Default_Handler
-	def_irq_handler	GPIOPortK_Handler	// Default_Handler
-	def_irq_handler	GPIOPortL_Handler	// Default_Handler
-	def_irq_handler	SSI2_Handler		// Default_Handler
-	def_irq_handler	SSI3_Handler		// Default_Handler
-	def_irq_handler	UART3_Handler		// Default_Handler
-	def_irq_handler	UART4_Handler		// Default_Handler
-	def_irq_handler	UART5_Handler		// Default_Handler
-	def_irq_handler	UART6_Handler		// Default_Handler
-	def_irq_handler	UART7_Handler		// Default_Handler
-	def_irq_handler	I2C2_Handler		// Default_Handler
-	def_irq_handler	I2C3_Handler		// Default_Handler
-	def_irq_handler	Timer4A_Handler		// Default_Handler
-	def_irq_handler	Timer4B_Handler		// Default_Handler
-	def_irq_handler	Timer5A_Handler		// Default_Handler
-	def_irq_handler	Timer5B_Handler		// Default_Handler
-	def_irq_handler	WideTimer0A_Handler	// Default_Handler
-	def_irq_handler	WideTimer0B_Handler	// Default_Handler
-	def_irq_handler	WideTimer1A_Handler	// Default_Handler
-	def_irq_handler	WideTimer1B_Handler	// Default_Handler
-	def_irq_handler	WideTimer2A_Handler	// Default_Handler
-	def_irq_handler	WideTimer2B_Handler	// Default_Handler
-	def_irq_handler	WideTimer3A_Handler	// Default_Handler
-	def_irq_handler	WideTimer3B_Handler	// Default_Handler
-	def_irq_handler	WideTimer4A_Handler	// Default_Handler
-	def_irq_handler	WideTimer4B_Handler	// Default_Handler
-	def_irq_handler	WideTimer5A_Handler	// Default_Handler
-	def_irq_handler	WideTimer5B_Handler	// Default_Handler
-	def_irq_handler	FPU_Handler		// Default_Handler
-	def_irq_handler	PECI0_Handler		// Default_Handler
-	def_irq_handler	LPC0_Handler		// Default_Handler
-	def_irq_handler	I2C4_Handler		// Default_Handler
-	def_irq_handler	I2C5_Handler		// Default_Handler
-	def_irq_handler	GPIOPortM_Handler	// Default_Handler
-	def_irq_handler	GPIOPortN_Handler	// Default_Handler
-	def_irq_handler	Quadrature2_Handler	// Default_Handler
-	def_irq_handler	Fan0_Handler		// Default_Handler
-	def_irq_handler	GPIOPortP_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP1_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP2_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP3_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP4_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP5_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP6_Handler	// Default_Handler
-	def_irq_handler	GPIOPortP7_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ1_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ2_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ3_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ4_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ5_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ6_Handler	// Default_Handler
-	def_irq_handler	GPIOPortQ7_Handler	// Default_Handler
-	def_irq_handler	GPIOPortR_Handler	// Default_Handler
-	def_irq_handler	GPIOPortS_Handler	// Default_Handler
-	def_irq_handler	PWM1Generator0_Handler	// Default_Handler
-	def_irq_handler	PWM1Generator1_Handler	// Default_Handler
-	def_irq_handler	PWM1Generator2_Handler	// Default_Handler
-	def_irq_handler	PWM1Generator3_Handler	// Default_Handler
-	def_irq_handler	PWM1Fault_Handler	// Default_Handler
+	.macro def_DeactivatableIRs_handler handler_name
+	.weak \handler_name
+	.set \handler_name, Default_DeactivatableIRs_Handler
+	.endm
+
+	def_InactivatableIRs_handler NMI_Handler		// Default_Handler
+	def_InactivatableIRs_handler HardFault_Handler	// Default_Handler
+	def_InactivatableIRs_handler MemManage_Handler	// Default_Handler
+	def_InactivatableIRs_handler BusFault_Handler	// Default_Handler
+	def_InactivatableIRs_handler UsageFault_Handler	// Default_Handler
+	def_InactivatableIRs_handler SVC_Handler		// Default_Handler*/
+	def_InactivatableIRs_handler DebugMon_Handler	// Default_Handler
+	def_InactivatableIRs_handler PendSV_Handler		// Default_Handler
+
+	def_DeactivatableIRs_handler SysTick_Handler		// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortA_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortB_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortC_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortD_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortE_Handler	// Default_Handler
+	def_DeactivatableIRs_handler UART0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler UART1_Handler		// Default_Handler
+	def_DeactivatableIRs_handler SSI0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler I2C0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler PWM0Fault_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM0Generator0_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM0Generator1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM0Generator2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler Quadrature0_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC0Seq0_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC0Seq1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC0Seq2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC0Seq3_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WDT_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer0A_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer0B_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer1A_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer1B_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer2A_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer2B_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Comp0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Comp1_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Comp2_Handler		// Default_Handler
+	def_DeactivatableIRs_handler SysCtl_Handler		// Default_Handler
+	def_DeactivatableIRs_handler FlashCtl_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortF_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortG_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortH_Handler	// Default_Handler
+	def_DeactivatableIRs_handler UART2_Handler		// Default_Handler
+	def_DeactivatableIRs_handler SSI1_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer3A_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer3B_Handler		// Default_Handler
+	def_DeactivatableIRs_handler I2C1_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Quadrature1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler CAN0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler CAN1_Handler		// Default_Handler
+	def_DeactivatableIRs_handler CAN2_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Ethernet_Handler	// Default_Handler
+	def_DeactivatableIRs_handler Hibernate_Handler	// Default_Handler
+	def_DeactivatableIRs_handler USB0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler PWM0Generator3_Handler	// Default_Handler
+	def_DeactivatableIRs_handler uDMA_Handler		// Default_Handler
+	def_DeactivatableIRs_handler uDMA_Error		// Default_Handler
+	def_DeactivatableIRs_handler ADC1Seq0_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC1Seq1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC1Seq2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler ADC1Seq3_Handler	// Default_Handler
+	def_DeactivatableIRs_handler I2S0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler ExtBus_Handler		// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortJ_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortK_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortL_Handler	// Default_Handler
+	def_DeactivatableIRs_handler SSI2_Handler		// Default_Handler
+	def_DeactivatableIRs_handler SSI3_Handler		// Default_Handler
+	def_DeactivatableIRs_handler UART3_Handler		// Default_Handler
+	def_DeactivatableIRs_handler UART4_Handler		// Default_Handler
+	def_DeactivatableIRs_handler UART5_Handler		// Default_Handler
+	def_DeactivatableIRs_handler UART6_Handler		// Default_Handler
+	def_DeactivatableIRs_handler UART7_Handler		// Default_Handler
+	def_DeactivatableIRs_handler I2C2_Handler		// Default_Handler
+	def_DeactivatableIRs_handler I2C3_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer4A_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer4B_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer5A_Handler		// Default_Handler
+	def_DeactivatableIRs_handler Timer5B_Handler		// Default_Handler
+	def_DeactivatableIRs_handler WideTimer0A_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer0B_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer1A_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer1B_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer2A_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer2B_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer3A_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer3B_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer4A_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer4B_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer5A_Handler	// Default_Handler
+	def_DeactivatableIRs_handler WideTimer5B_Handler	// Default_Handler
+	def_DeactivatableIRs_handler FPU_Handler		// Default_Handler
+	def_DeactivatableIRs_handler PECI0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler LPC0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler I2C4_Handler		// Default_Handler
+	def_DeactivatableIRs_handler I2C5_Handler		// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortM_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortN_Handler	// Default_Handler
+	def_DeactivatableIRs_handler Quadrature2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler Fan0_Handler		// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP3_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP4_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP5_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP6_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortP7_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ3_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ4_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ5_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ6_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortQ7_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortR_Handler	// Default_Handler
+	def_DeactivatableIRs_handler GPIOPortS_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM1Generator0_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM1Generator1_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM1Generator2_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM1Generator3_Handler	// Default_Handler
+	def_DeactivatableIRs_handler PWM1Fault_Handler	// Default_Handler
 
 
 
