@@ -32,8 +32,13 @@ int main(void)
     terminalCmd_t *cmd;
 
     // Inits
+    pTime_init(pTime_tickbase_1ms);
+    pTime_wait(500); // Wait 0.5s to be sure the supply-voltages could built up before starting init
+
     sys_clk_set(); // Set 80MHz
-    pTime_init(pTime_tickbase_1us);
+    pTime_changeTickbase(pTime_tickbase_1us);
+    pTime_wait((uint32_t)500e3); // Wait another 500ms to stabilize supply (µC needs more current when boosted up)
+
     terminal_init();
     dacs_init();
     adcs_init();
