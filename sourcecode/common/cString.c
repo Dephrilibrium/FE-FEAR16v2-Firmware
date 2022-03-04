@@ -90,7 +90,7 @@ cBool cstrIsNum(const char *string, enum StringNumberBase snb)
   }
 
   // Number is longer than the maximum allowed length!
-  if (string >= lastStrP)
+  if (string > lastStrP)
     return bFalse;
 
   // When everything run through the number is valid
