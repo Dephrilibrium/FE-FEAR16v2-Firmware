@@ -135,7 +135,7 @@ adc_measurementValues_t _measVal = {.nChains = ADC_NCHAINS,
                                     .zeroStream = {0},
                                     .chains = {{{0}}}};
 adc_voltRange_t _range = {.targeRange = ADC_POSITIVE_RANGE,
-                          .voltQuantum = ADC_POSITIVE_RANGE / ADC_POSITIVE_RESOLUTION};
+                          .voltQuantum = -ADC_POSITIVE_RANGE / ADC_POSITIVE_RESOLUTION}; // - because the OpAmp is inverting!
 
 /*******************************\
 | Function definitons
