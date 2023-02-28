@@ -233,7 +233,6 @@ void adc_setupSequence(void)
     // // basicConfigDWORD |= ADC_CONF_READ_EN;  // Read config-register in the next 2 cycles!
     // // basicConfigDWORD |= ADC_CONF_WRITE_EN; // Update register contents
 
-    // pTime_wait(10000); // Wait 10ms
     Delay_Await(10); // Wait 10ms
     while (ssi3_ADCsBusy(adcChain_CF) || ssi3_ADCsBusy(adcChain_UDrp))
         ; // To be sure ADCs POR is finished, wait for ADC-chains ready

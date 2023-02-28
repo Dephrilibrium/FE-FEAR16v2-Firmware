@@ -37,11 +37,6 @@ int main(void)
     // Inits
     Delay_Init();
     Delay_Await(1500); // Wait 1.5s to stabilize power supply
-    // pTime_init(pTime_tickbase_1ms);
-    // pTime_wait(500); // Wait 0.5s to be sure the supply-voltages could built up before starting init
-
-    // pTime_changeTickbase(pTime_tickbase_1us);
-    // pTime_wait((uint32_t)500e3); // Wait another 500ms to stabilize supply (µC needs more current when boosted up)
 
     terminal_init();
     dacs_init();

@@ -242,7 +242,6 @@ void dac_setupSequence(void)
   uint16_t dataWord = 0;
 
 
-  // pTime_wait(2000); // POR needs 1ms to "boot" up; Wait >1ms
   Delay_Await(2); // POR needs 1ms to "boot" up; Wait >1ms
 
   // // Soft-Reset
@@ -251,7 +250,6 @@ void dac_setupSequence(void)
   // dac_setToAllConfPacks(cmdByte, dataWord);
   // dac_queryPack(dac_pack_ctrlDAC0);
 
-  // pTime_wait(200); // SoftReset triggers a POR (wait >1ms)
   // Delay_Await(2); // SoftReset triggers a POR (wait >1ms)
 
   // Enable SDO; No Alarms; No powerdown
