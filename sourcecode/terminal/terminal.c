@@ -200,16 +200,26 @@ enum terminalError terminal_runCmd(terminalCmd_t *cmd)
     | Checking first the typic used commands to reduce the comparison   |
     | effort.                                                           |
     \*******************************************************************/
-    // DAC commands
+    // !!! MOST USED COMMANDS AS FIRST !!!
+    // DAC setvalues
     if (strcmp(CMDS_DAC_VSET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
         cmdsDAC_setVoltage(cmd);
+    // ADC getvalues
+    else if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        cmdsADC_getVoltage(cmd);
 
+    // !!! RESIDUAL COMMANDS WHICH ARE NOT SO OFTEN !!!
+    // Rest of DAC
     else if (strcmp(CMDS_DAC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
         cmdsDAC_getVoltage(cmd);
 
-    // ADC commands
-    else if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
-        cmdsADC_getVoltage(cmd);
+    // Rest of ADC commands
+    else if (strcmp(CMDS_ADC_NMEAN, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        cmdsADC_AdjustNMean(cmd);
+
+    else if (strcmp(CMDS_ADC_MDELT, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        cmdsADC_AdjustMeasurementDelta(cmd);
+
 
     // Terminal/Options and so on
     else if (strcmp(CMD_IDN, cmd->argv[CMD_HANDLE_INDEX]) == 0)
@@ -328,8 +338,11 @@ void terminal_err(terminalCmd_t *cmd)
 void terminal_unknown(terminalCmd_t *cmd)
 {
     terminal_NAK("Unknown command");
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
     if (cmd->argv[0] != NULL)
     {
+// // #pragma GCC diagnostic pop
         terminal_send(",");
         terminal_send(cmd->argv[CMD_HANDLE_INDEX]);
     }
@@ -367,7 +380,7 @@ void terminal_NAK(char *msg)
     if (msg != NULL)
     {
         terminal_send(" ");
-        terminal_sendline(msg);
+        terminal_send(msg);
     }
     terminal_sendline(NULL);
 }

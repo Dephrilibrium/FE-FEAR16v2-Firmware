@@ -23,7 +23,7 @@ void dma_clear_dmaCCT(void);
 /*******************************\
 | Global variables
 \*******************************/
-cBool _dmaAlreadyInitialized = bFalse;
+// cBool _dmaAlreadyInitialized = bFalse; // Move to init-function
 DMA_ChannelControlTable _dmaCCT __attribute__((aligned(DMA_CCT_ALIGNBOUNDARY))); // Channel Control Table have to be aligned to 1024!
 
 uint32_t _dmaInDummies[DMA_CCT_CHANNELS] = {0};
@@ -38,6 +38,7 @@ uint32_t _dmaOutDummies[DMA_CCT_CHANNELS] = {0};
 \*******************************/
 void dma_init(void)
 {
+  static cBool _dmaAlreadyInitialized = bFalse;
   if (_dmaAlreadyInitialized)
     return;
 

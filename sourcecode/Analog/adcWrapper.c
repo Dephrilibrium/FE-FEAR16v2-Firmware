@@ -8,10 +8,13 @@
 /* Project specific */
 #include "common.h"
 #include "adcWrapper.h"
+#include "cmdsADC.h"
 #include "dma.h"
 #include "ssi3_ADCs.h"
-#include "preciseTime.h"
+// #include "preciseTime.h"
+#include "DelayTimer.h"
 #include "swap.h"
+
 
 /*******************************\
 | Local Defines
@@ -75,7 +78,7 @@ typedef struct
 
 typedef struct
 {
-    double targeRange;
+    double targetRange;
     double voltQuantum;
 } adc_voltRange_t;
 
@@ -134,7 +137,7 @@ adc_measurementValues_t _measVal = {.nChains = ADC_NCHAINS,
                                     .nWords = ADC_CHANNELS_NALLWORDS,
                                     .zeroStream = {0},
                                     .chains = {{{0}}}};
-adc_voltRange_t _range = {.targeRange = ADC_POSITIVE_RANGE,
+adc_voltRange_t _range = {.targetRange = ADC_POSITIVE_RANGE,
                           .voltQuantum = -ADC_POSITIVE_RANGE / ADC_POSITIVE_RESOLUTION}; // - because the OpAmp is inverting!
 
 /*******************************\
@@ -169,6 +172,11 @@ void adcs_init(void)
     // adc_chipselectBlocking(adcChain_UDrp, bTrue);
     // ssi_transceive16Bit(SSI3, output, input, nWordSize);
     // adc_chipselectBlocking(adcChain_UDrp, bFalse);
+
+
+    // I know, bad codestyle, but i needed a quick solution!
+    cmdsADC_InitializeMeanStruct();
+    cmdsADC_InitializeMeasurementDelta();
 }
 
 void adc_wipeADCData(void)
@@ -225,7 +233,8 @@ void adc_setupSequence(void)
     // // basicConfigDWORD |= ADC_CONF_READ_EN;  // Read config-register in the next 2 cycles!
     // // basicConfigDWORD |= ADC_CONF_WRITE_EN; // Update register contents
 
-    pTime_wait(10000); // Wait 10ms
+    // pTime_wait(10000); // Wait 10ms
+    Delay_Await(10); // Wait 10ms
     while (ssi3_ADCsBusy(adcChain_CF) || ssi3_ADCsBusy(adcChain_UDrp))
         ; // To be sure ADCs POR is finished, wait for ADC-chains ready
 

@@ -17,7 +17,7 @@
 
 // ADC Datastructure
 #define ADC_NCHAINS 2      // Amount of ADC Daisy-Chains
-#define ADC_NADCS 2        // Amount of ADCs in daisy-chain
+#define ADC_NADCS 1        // Amount of ADCs in daisy-chain
 #define ADC_CONFPACKS 1    // Amount of config-packs (DWORD!)
 #define ADC_CPACK_NWORDS 2 // Conf-DWORD = 2 * 16bit
 #define ADC_CHANNELS 8     // Amount of outputvoltage-packs (WORD!)

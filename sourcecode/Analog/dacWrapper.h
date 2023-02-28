@@ -16,7 +16,7 @@
 #define DAC_SSI_CLKRATE ssi_clkRate_1MHz // Default-Clockrate
 
 // DAC Datastructure
-#define DAC_NDACS 2       // Amount of DACs in daisy-chain
+#define DAC_NDACS 1       // Amount of DACs in daisy-chain
 #define DAC_CONFPACKS 1   // Amoutn of config-packs
 #define DAC_VOLTPACKS 8   // Amount of outputvoltage-packs
 #define DAC_PACK_NBYTES 3 // Bytes per data-pack

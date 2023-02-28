@@ -9,7 +9,8 @@
 #include "common.h"
 #include "dacWrapper.h"
 #include "ssi0_DACs.h"
-#include "preciseTime.h"
+// #include "preciseTime.h"
+#include "DelayTimer.h"
 #include "swap.h"
 
 /*******************************\
@@ -240,7 +241,9 @@ void dac_setupSequence(void)
   uint8_t cmdByte = 0;
   uint16_t dataWord = 0;
 
-  pTime_wait(2000); // POR needs 1ms to "boot" up; Wait >1ms
+
+  // pTime_wait(2000); // POR needs 1ms to "boot" up; Wait >1ms
+  Delay_Await(2); // POR needs 1ms to "boot" up; Wait >1ms
 
   // // Soft-Reset
   // cmdByte = DAC_WRITE | DAC_REG_ADDR_TRIGGER;
@@ -249,6 +252,7 @@ void dac_setupSequence(void)
   // dac_queryPack(dac_pack_ctrlDAC0);
 
   // pTime_wait(200); // SoftReset triggers a POR (wait >1ms)
+  // Delay_Await(2); // SoftReset triggers a POR (wait >1ms)
 
   // Enable SDO; No Alarms; No powerdown
   cmdByte = DAC_WRITE | DAC_REG_ADDR_SPICONFIG;

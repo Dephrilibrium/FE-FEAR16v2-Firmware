@@ -2,12 +2,15 @@
 | Includes
 \*******************************/
 /* Std-Libs */
+#include "stdio.h"
 
 /* Project specific */
 #include "uart1.h"
 #include "cmdsADC.h"
 #include "adcWrapper.h"
 #include "cString.h"
+#include "MovingAverage.h"
+#include "DelayTimer.h"
 
 /*******************************\
 | Local Defines
@@ -50,16 +53,109 @@ typedef struct
 | Local function declarations
 \*******************************/
 void cmdsDAC_parseArgs(terminalCmd_t *cmd);
+void cmdsADC_RecalculateMean(void);
 
 /*******************************\
 | Global variables
 \*******************************/
 adcChUpdRequest_t _adcChRequests = {.nADCs = ADC_NADCS, .nChPerADC = ADC_CHANNELS, .nAllChannels = ADC_NALLCHPACKS, .ChRequests = {{0}}};
+double _adcMeanBuffers[ADC_NCHAINS][ADC_NALLCHPACKS][CMDS_ADC_NMEAN_MAX];
+MovingAverage_t _adcAverageStructs[ADC_NCHAINS][ADC_NALLCHPACKS] = {0}; // Real setup in init
 adcOutputString_t _adcOutputString = {.nSize = CMDS_ADC_OUTPUTSTRINGBUFFER_SIZE, .nFill = 0, .string = {0}};
+uint16_t _delayHandle;
 
 /*******************************\
 | Function definitons
 \*******************************/
+void cmdsADC_InitializeMeanStruct(void)
+{
+  for (int iChain = 0; iChain < ADC_NCHAINS; iChain++)
+  {
+    for (int iChnl = 0; iChnl < ADC_NALLCHPACKS; iChnl++)
+    {
+      _adcAverageStructs[iChain][iChnl].nSize = CMDS_ADC_NMEAN_DEFAULT;
+      // _adcAverageStructs[i].nFill = 0;        // Already 0
+      // _adcAverageStructs[i].iPos = 0;         // Already 0
+      // _adcAverageStructs[i].BuffMean = 0.0;   // Already 0
+      _adcAverageStructs[iChain][iChnl].Buffer = _adcMeanBuffers[iChain][iChnl];
+    }
+  }
+}
+
+void cmdsADC_InitializeMeasurementDelta(void)
+{
+  _delayHandle = Delay_AsyncNew(CMDS_ADC_MDELT_DEFAULT);
+}
+
+void cmdsADC_AdjustMeasurementDelta(terminalCmd_t *cmd)
+{
+  if (cmd->argc < CMDS_ADC_NMEAN_ARGC)
+  {
+    terminal_NAK("Not enough arguments");
+    return;
+  }
+
+  if (cmd->argc > CMDS_ADC_NMEAN_ARGC)
+  {
+    terminal_NAK("Too much arguments");
+    return;
+  }
+
+  uint32_t msWait = atoi(cmd->argv[CMDS_ADC_NMEAN_NPNTS_INDEX]);
+  if (msWait < CMDS_ADC_MDELT_MIN || msWait > CMDS_ADC_MDELT_MAX)
+  {
+    char nakMsg[64];
+    sprintf(nakMsg, "%d <= msWait <= %d or conversion error.", CMDS_ADC_MDELT_MIN, CMDS_ADC_MDELT_MAX);
+    terminal_NAK(nakMsg);
+    return;
+  }
+  Delay_AsyncAdjust(_delayHandle, msWait);
+  terminal_ACK(NULL);
+}
+
+uint16_t cmdsADC_GetDelayHandle(void)
+{
+  return _delayHandle;
+}
+
+void cmdsADC_AdjustNMean(terminalCmd_t *cmd)
+{
+  if (cmd->argc < CMDS_ADC_NMEAN_ARGC)
+  {
+    terminal_NAK("Not enough arguments");
+    return;
+  }
+
+  if (cmd->argc > CMDS_ADC_NMEAN_ARGC)
+  {
+    terminal_NAK("Too much arguments");
+    return;
+  }
+
+  int32_t nPnts = atoi(cmd->argv[CMDS_ADC_NMEAN_NPNTS_INDEX]);
+  if (nPnts < CMDS_ADC_NMEAN_MIN || nPnts > CMDS_ADC_NMEAN_MAX)
+  {
+    char nakMsg[64];
+    sprintf(nakMsg, "%d <= NMEAN-Points <= %d or conversion error.", CMDS_ADC_NMEAN_MIN, CMDS_ADC_NMEAN_MAX);
+    terminal_NAK(nakMsg);
+    return;
+  }
+
+  for (uint16_t iChain = adcChain_CF; iChain < ADC_NCHAINS; iChain++)
+  {
+    for (uint16_t iChnl = 0; iChnl < ADC_NALLCHPACKS; iChnl++)
+    {
+      _adcAverageStructs[iChain][iChnl].nSize = nPnts;
+      // When nMean is changed -> Reset all values and begin again
+      _adcAverageStructs[iChain][iChnl].nFill = 0;
+      _adcAverageStructs[iChain][iChnl].iPos = 0;
+      _adcAverageStructs[iChain][iChnl].BuffMean = 0.0;
+    }
+  }
+
+  terminal_ACK(NULL);
+}
+
 void cmdsADC_parseArgs(terminalCmd_t *cmd)
 {
   // Get target chain
@@ -142,9 +238,9 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
   }
   // terminal_ACK(NULL);
   // terminal_send(termOptions.lineTerm.stdlineTerm);
-  adc_takeMeasurement(_adcChRequests.targetChain);
+  // adc_takeMeasurement(_adcChRequests.targetChain);
 
-  adc_measurementValues_t *measurements = adc_grabMeasurements();
+  // adc_measurementValues_t *measurements = adc_grabMeasurements();
   _adcOutputString.nFill = 0;
   _adcOutputString.string[0] = '\0';
   for (uint16_t iQuery = 0; iQuery < _adcChRequests.nAllChannels; iQuery++)
@@ -153,11 +249,24 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
     {
       _adcChRequests.ChRequests[iQuery].requested = bFalse;
       // _adcChRequests.ChRequests[iQuery].voltage = measurements->chains[_adcChRequests.targetChain].voltages[iQuery];
-      sprintf(&_adcOutputString.string[_adcOutputString.nFill], "%.4f,", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
+      // sprintf(&_adcOutputString.string[_adcOutputString.nFill], "%.4f,", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
+      sprintf(&_adcOutputString.string[_adcOutputString.nFill], "%.4f,", _adcAverageStructs[_adcChRequests.targetChain][iQuery].BuffMean);
       _adcOutputString.nFill += strlen(&_adcOutputString.string[_adcOutputString.nFill]);
     }
   }
   _adcOutputString.nFill--;
   _adcOutputString.string[_adcOutputString.nFill] = '\0'; // Remove tailing ','
   terminal_ACK(_adcOutputString.string);
+}
+
+void cmdsADC_measVoltage2Mean(void)
+{
+  for (uint16_t iChain = adcChain_CF; iChain < ADC_NCHAINS; iChain++)
+  {
+    adc_takeMeasurement(iChain);
+    adc_measurementValues_t *measurements = adc_grabMeasurements();
+
+    for (uint16_t iChnl = 0; iChnl < _adcChRequests.nAllChannels; iChnl++)
+      Average(&_adcAverageStructs[iChain][iChnl], measurements->chains[iChain].voltages[iChnl]);
+  }
 }
