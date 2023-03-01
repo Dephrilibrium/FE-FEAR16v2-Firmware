@@ -201,12 +201,12 @@ enum terminalError terminal_runCmd(terminalCmd_t *cmd)
     | effort.                                                           |
     \*******************************************************************/
     // !!! MOST USED COMMANDS AS FIRST !!!
-    // DAC setvalues
-    if (strcmp(CMDS_DAC_VSET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
-        cmdsDAC_setVoltage(cmd);
     // ADC getvalues
-    else if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+    if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
         cmdsADC_getVoltage(cmd);
+    // DAC setvalues
+    else if (strcmp(CMDS_DAC_VSET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
+        cmdsDAC_setVoltage(cmd);
 
     // !!! RESIDUAL COMMANDS WHICH ARE NOT SO OFTEN !!!
     // Rest of DAC

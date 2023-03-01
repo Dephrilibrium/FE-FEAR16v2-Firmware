@@ -49,18 +49,10 @@ int main(void)
         if (cmd != NULL)
             terminal_runCmd(cmd);
 
-        // if (Delay_AsyncWait(adcDelayHandle)) // When delay ran off
-        // {
-        //     Delay_Reset(adcDelayHandle); // Reset delay
-        //     cmdsADC_measVoltage2Mean();  // And do the measurements
-        // }
-
         if (Delay_AsyncWait(adcDelayHandle)) // When delay ran off
         {
             Delay_Reset(adcDelayHandle); // Reset delay
-            cmdsADC_measVoltage2Mean();  // And do the measurements
-            dac_updateChVoltage(0, 2);
-            dac_queryPack(0);
+            cmdsADC_measVoltage2Mean();  // And do the measurements/meaning
         }
     }
 }

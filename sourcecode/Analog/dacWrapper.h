@@ -41,6 +41,7 @@ enum dac_packIndex
   dac_vPack_Ch5,
   dac_vPack_Ch6,
   dac_vPack_Ch7,
+#if DAC_NDACS == 2
   dac_vPack_Ch8,
   dac_vPack_Ch9,
   dac_vPack_Ch10,
@@ -49,9 +50,12 @@ enum dac_packIndex
   dac_vPack_Ch13,
   dac_vPack_Ch14,
   dac_vPack_Ch15,
+#endif
   dac_vPacks_Count,
   dac_cPack_DAC0 = dac_vPacks_Count,
+#if DAC_NDACS == 2
   dac_cPack_DAC1,
+#endif
   dac_allPacks_Count,
 };
 

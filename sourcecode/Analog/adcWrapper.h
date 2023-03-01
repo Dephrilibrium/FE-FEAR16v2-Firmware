@@ -40,6 +40,7 @@ enum adcChain
 {
     adcChain_CF,
     adcChain_UDrp,
+    adcChain_Count,
 };
 
 enum adcVPackIndex
@@ -53,6 +54,7 @@ enum adcVPackIndex
     adcCh6,
     adcCh7,
     adcCh8,
+#if ADC_NADCS == 2
     adcCh9,
     adcCh10,
     adcCh11,
@@ -60,7 +62,8 @@ enum adcVPackIndex
     adcCh13,
     adcCh14,
     adcCh15,
-    // adcChannel_Count,
+#endif
+    adcChannel_Count,
 };
 
 // enum adcStatus
