@@ -41,7 +41,8 @@
 #define SSI0_CR_MS BIT(2)              // Master (clear) / Slave (set)
 #define SSI0_CC_SYSCTL OPTION(0x00, 0) // Make CoreClk to ClockSource (can depend on clock-settings!)
 #define SSI0_CC_PIOSC OPTION(0x05, 0)  // Make PIOSC (Precise Internal Oscillator = 16MHz) to ClockSource
-// #pragma region CR0 Datasize
+
+#pragma region CR0 Datasize // ------ Data size is now variable managed via enum ------
 // #define SSI0_CR0_DATASIZE_4 OPTION(0x03, 0)  // 4-bit data
 // #define SSI0_CR0_DATASIZE_5 OPTION(0x04, 0)  // 5-bit data
 // #define SSI0_CR0_DATASIZE_6 OPTION(0x05, 0)  // 6-bit data
@@ -55,7 +56,7 @@
 // #define SSI0_CR0_DATASIZE_14 OPTION(0x0D, 0) // 14-bit data
 // #define SSI0_CR0_DATASIZE_15 OPTION(0x0E, 0) // 15-bit data
 // #define SSI0_CR0_DATASIZE_16 OPTION(0x0F, 0) // 16-bit data
-// #pragma endregion CR0 Datasize
+#pragma endregion CR0 Datasize
 #define SSI0_CR0_FREESCALE OPTION(0x0, 4) // Freescale SPI
 #define SSI0_CR0_SPO BIT(6)               // Clock idle polarity (0 = low; 1 = high)
 #define SSI0_CR0_SPH BIT(7)               // Data clock phase (0 = first clock edge; 1 = second clock edge)
@@ -218,88 +219,6 @@ void ssi0_setClkRate(enum ssi_clkRate clkRate)
   ssi_enable(SSI0, bOn);
 }
 
-// void ssi0_changeClkRate(enum ssi_clkRate clkRate)
-// {
-//   if (clkRate > PIOSC_MHZ)
-//     return;
-
-//   uint8_t CPSR;
-//   uint8_t SCR = 0; // Is 0 in all cases!
-
-//   switch (clkRate)
-//   {
-//   case ssi_clkRate_125kHz:
-//     CPSR = 128;
-//     break;
-
-//   case ssi_clkRate_250kHz:
-//     CPSR = 64;
-//     break;
-
-//   case ssi_clkRate_500kHz:
-//     CPSR = 32;
-//     break;
-
-//   default:
-//     clkRate = ssi_clkRate_1MHz;
-//     CPSR = 16;
-//     break;
-//   }
-
-//   _clkRate = clkRate;
-//   SSI0->CPSR = CPSR;
-//   SSI0->CR0 &= ~SSI0_CR0_CLR;
-//   SSI0->CR0 |= SSI0_CR0_SCR(SCR);
-// }
-
-// enum ssi_sendingStatus ssi0_SendindStatus(void)
-// {
-//   if (SSI0->SR & SSI0_SR_BUSY)
-//     return ssi_sending_busy;
-
-//   return ssi_sending_idle;
-// }
-
-// enum ssi_FIFOStatus ssi0_RxFifoStatus(void)
-// {
-//   uint32_t SR = SSI0->SR;
-
-//   /* KEEP IN MIND!
-//    * When Debugging the Debugger reads out the SSI0-DR Register!
-//    * Therefore sometimes it can be that the RxFIFO Empty bit can
-//    *  disappear for "no reason"!
-//    */
-
-//   if (SR & SSI0_SR_RFF) // Check receive-FIFO Full
-//     return ssi_FIFO_Full;
-//   else if (SR & SSI0_SR_RNE) // Check receive FIFO not empty
-//     return ssi_FIFO_NeitherEmptyOrFull;
-
-//   // If both not fullfilled FIFO is empty
-//   return ssi_FIFO_Empty;
-// }
-
-// enum ssi_FIFOStatus ssi0_TxFifoStatus(void)
-// {
-//   uint32_t SR = SSI0->SR;
-
-//   if (SR & SSI0_SR_TFE) // Check transmit-FIFO empty
-//     return ssi_FIFO_Empty;
-//   else if (SR & SSI0_SR_TNF) // Check transmit-FIFO not full
-//     return ssi_FIFO_NeitherEmptyOrFull;
-
-//   // If both not fullfilled FIFO is full
-//   return ssi_FIFO_Full;
-// }
-
-// void ssi0_enable(cBool state)
-// {
-//   if (state == bTrue)
-//     SSI0->CR1 |= SSI_CR1_SSE; // Enable SSI
-//   else
-//     SSI0->CR1 &= ~SSI_CR1_SSE; // Disable SSI
-// }
-
 void ssi0_selectDACs(cBool state)
 {
   if (state)
@@ -347,50 +266,3 @@ void ssi0_TxOnOff(cBool ioOnOff)
   else
     GPIOA->DEN &= ~PA5_DACS_MOSI0;
 }
-
-/* ******** Shifted as common method to ssiCommon ******** */
-// void ssi0_transmit(uint8_t *serializedStream, uint16_t bytes_n)
-// {
-//   // Has to be managed by the user!
-//   // ssi0_selectDACs(bTrue); // Chip-Select
-
-//   for (int iByte = bytes_n - 1; iByte >= 0; iByte--) // Use underflow-trick to check "-1"
-//   {
-//     while (ssi0_TxFifoStatus() == ssi_FIFO_Full)
-//       ; // Wait when FIFO is full!
-
-//     SSI0->DR = serializedStream[iByte];
-//   }
-
-//   // while (ssi0_SendindStatus() == ssi_sending_busy)
-//   //   ;                      // Wait for send finished
-//   // ssi0_selectDACs(bFalse); // Chip-Deselect
-// }
-
-// void ssi0_receive(uint8_t *serializedStream, uint16_t *nBytesCopied, uint16_t nMaxBytes)
-// {
-//   /* The received bytes comes in reversed order! */
-
-//   int iCpyByte = nMaxBytes - 1; // CopyIndex for reversed order
-
-//   for (; iCpyByte >= 0; iCpyByte--)
-//   {
-//     if (ssi0_RxFifoStatus() == ssi_FIFO_Empty)
-//       break;
-
-//     serializedStream[iCpyByte] = (uint8_t)SSI0->DR;
-//   }
-
-//   // Sometimes the RxFifo stores a byte more than expected. This shifts the entire response into wrong positions!
-//   // Workaround: Clear RxFIFO after each read
-//   ssi0_clearRxFIFO();
-
-//   *nBytesCopied = nMaxBytes - (iCpyByte + 1); // Set amount of copied bytes
-// }
-
-// void ssi0_clearRxFIFO(void)
-// {
-//   while (ssi0_RxFifoStatus() != ssi_FIFO_Empty) // Force clearing RxFIFO
-//     SSI0->DR;
-// }
-/* ------------------------------------------------------- */

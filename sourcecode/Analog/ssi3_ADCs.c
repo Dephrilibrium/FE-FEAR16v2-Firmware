@@ -48,7 +48,7 @@
 #define SSI_CR_MS BIT(2)              // Master (clear) / Slave (set)
 #define SSI_CC_SYSCTL OPTION(0x00, 0) // Make CoreClk to ClockSource (can depend on clock-settings!)
 #define SSI_CC_PIOSC OPTION(0x05, 0)  // Make PIOSC (Precise Internal Oscillator = 16MHz) to ClockSource
-// #pragma region CR0 Datasize
+#pragma region CR0 Datasize           // Datasize is now variable managed via an enum
 // #define SSI_CR0_DATASIZE_4 OPTION(0x03, 0)  // 4-bit data
 // #define SSI_CR0_DATASIZE_5 OPTION(0x04, 0)  // 5-bit data
 // #define SSI_CR0_DATASIZE_6 OPTION(0x05, 0)  // 6-bit data
@@ -62,7 +62,7 @@
 // #define SSI_CR0_DATASIZE_14 OPTION(0x0D, 0) // 14-bit data
 // #define SSI_CR0_DATASIZE_15 OPTION(0x0E, 0) // 15-bit data
 // #define SSI_CR0_DATASIZE_16 OPTION(0x0F, 0) // 16-bit data
-// #pragma endregion CR0 Datasize
+#pragma endregion CR0 Datasize
 #define SSI_CR0_FREESCALE OPTION(0x0, 4) // Freescale SPI
 #define SSI_CR0_SPO BIT(6)               // Clock idle polarity (0 = low; 1 = high)
 #define SSI_CR0_SPH BIT(7)               // Data clock phase (0 = first clock edge; 1 = second clock edge)
@@ -84,15 +84,11 @@
 /*******************************\
 | Local function declarations
 \*******************************/
-// void ssi3_changeClkRate(enum ssi_clkRate clkRate); // Now in ssiCommon
-// void ssi3_enable(cBool state);
 
 /*******************************\
 | Global variables
 \*******************************/
 enum ssi_clkRate _ssi3_clkRate = ADC_SSI_CLKRATE; // Default 1 MHz
-// ssi3_dacData_t _serializedOutput = {.Size = SSI3_BUFFERSIZE, .Filled = 0};
-// ssi3_dacData_t _serializedInput = {.Size = SSI3_BUFFERSIZE, .Filled = 0};
 
 /*******************************\
 | Function definitons
@@ -232,13 +228,6 @@ void ssi3_init(enum ssi_clkRate clkRate)
     // Prepare DAC for regular use
     ssi3_rstADCs(adcChain_CF, bFalse);   // Set ADC-reset while init ssi3
     ssi3_rstADCs(adcChain_UDrp, bFalse); // Set ADC-reset while init ssi3
-    // ssi0_clrDACs(bFalse);    // Already off
-    // ssi0_selectDACs(bFalse); // Already off
-    // ssi0_ldacDACs(bFalse);   // Already disabled sychronous output
-
-    // ssi0_clearRxFIFO(); // Be sure nothing undefined is stored in RxFIFO during the init-process
-
-    // DMA
 }
 
 void ssi3_setClkRate(enum ssi_clkRate clkRate)
@@ -248,48 +237,6 @@ void ssi3_setClkRate(enum ssi_clkRate clkRate)
     _ssi3_clkRate = clkRate;
     ssi_enable(SSI3, bOn);
 }
-
-// voidß ssi3_changeClkRate(enum ssi_clkRate clkRate)
-// {
-//     if (clkRate > PIOSC_MHZ)
-//         return;
-
-//     uint8_t CPSR;
-//     uint8_t SCR = 0; // Is 0 in all cases!
-
-//     switch (clkRate)
-//     {
-//     case ssi_clkRate_125kHz:
-//         CPSR = 128;
-//         break;
-
-//     case ssi_clkRate_250kHz:
-//         CPSR = 64;
-//         break;
-
-//     case ssi_clkRate_500kHz:
-//         CPSR = 32;
-//         break;
-
-//     default:
-//         clkRate = ssi_clkRate_1MHz;
-//         CPSR = 16;
-//         break;
-//     }
-
-//     _clkRate = clkRate;
-//     SSI3->CPSR = CPSR;
-//     SSI3->CR0 &= ~SSI_CR0_CLR;
-//     SSI3->CR0 |= SSI3_CR0_SCR(SCR);
-// }
-
-// void ssi3_enable(cBool state)
-// {
-//     if (state == bTrue)
-//         SSI3->CR1 |= SSI_CR1_SSE; // Enable SSI
-//     else
-//         SSI3->CR1 &= ~SSI_CR1_SSE; // Disable SSI
-// }
 
 void ssi3_selectADCs(enum adcChain chain, cBool state)
 {

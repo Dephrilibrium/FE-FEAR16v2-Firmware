@@ -236,11 +236,7 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
     terminal_NAK("Unknown ADC-chain");
     return;
   }
-  // terminal_ACK(NULL);
-  // terminal_send(termOptions.lineTerm.stdlineTerm);
-  // adc_takeMeasurement(_adcChRequests.targetChain);
 
-  // adc_measurementValues_t *measurements = adc_grabMeasurements();
   _adcOutputString.nFill = 0;
   _adcOutputString.string[0] = '\0';
   for (uint16_t iQuery = 0; iQuery < _adcChRequests.nAllChannels; iQuery++)
@@ -248,8 +244,6 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
     if (_adcChRequests.ChRequests[iQuery].requested == bTrue)
     {
       _adcChRequests.ChRequests[iQuery].requested = bFalse;
-      // _adcChRequests.ChRequests[iQuery].voltage = measurements->chains[_adcChRequests.targetChain].voltages[iQuery];
-      // sprintf(&_adcOutputString.string[_adcOutputString.nFill], "%.4f,", measurements->chains[_adcChRequests.targetChain].voltages[iQuery]);
       sprintf(&_adcOutputString.string[_adcOutputString.nFill], "%.4f,", _adcAverageStructs[_adcChRequests.targetChain][iQuery].BuffMean);
       _adcOutputString.nFill += strlen(&_adcOutputString.string[_adcOutputString.nFill]);
     }

@@ -56,9 +56,3 @@ int main(void)
         }
     }
 }
-
-void delay(uint32_t delay)
-{
-    while (delay--)
-        ;
-}

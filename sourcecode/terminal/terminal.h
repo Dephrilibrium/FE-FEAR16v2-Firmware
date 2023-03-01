@@ -26,7 +26,7 @@
 #define CMD_ECHO "echo"
 #define CMD_IDN "IDN?"
 #define IDN_DEVICETYPE "FEAR16v2"
-#define IDN_FIRMWARE "1.0.0.1"
+#define IDN_FIRMWARE "1.0.0.2"
 // #define CMD_TERMINAL_ECHO_SET "TERM:ECHO" // Was planned for Echo ON/OFF, but not used
 #define CMD_TERMINAL_LINETERM_SET "TERM:LINETERM"
 #define CMD_TERMINAL_BAUD_SET "TERM:BAUD"

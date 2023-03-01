@@ -15,7 +15,6 @@
 #include "DelayTimer.h"
 #include "swap.h"
 
-
 /*******************************\
 | Local Defines
 \*******************************/
@@ -89,16 +88,8 @@ void adcs_dmaConfig(void);
 void adc_wipeADCData(void);
 void adc_setupSequence(void);
 void adc_setCPacks(uint32_t config);
-// void adc_setVPacks(int16_t value);
 void adc_setVPacks(double value);
-// void adc_setToPacks(uint8_t cmdByte, uint16_t dataWord, ADC_StructuralDataPack_t *packCollection, uint8_t nPacks);
 
-// enum adc_packIndex adc_IndexInt2EnumPackIndex(uint16_t iPackIndex);
-// uint16_t adc_IndexEnumPackIndex2Int(enum adc_packIndex packIndex);
-// void adc_prepareTxData(enum adc_packIndex packIndex);
-// void adc_fetchRxData(enum adc_packIndex packIndex);
-
-// double adc_selectVoltRange(double voltRange); // Hardly to calculate -> Maybe a feature in future
 void adc_reverseRaw(enum adcChain chain);
 void adc_convertRaw2Double(enum adcChain chain);
 
@@ -145,48 +136,19 @@ adc_voltRange_t _range = {.targetRange = ADC_POSITIVE_RANGE,
 \*******************************/
 void adcs_init(void)
 {
-    // #define nWordSize 16
-    //     uint16_t output[nWordSize] = {
-    //         0x01,
-    //         0x02,
-    //         0x03,
-    //         0x04,
-    //         0x05,
-    //         0x06,
-    //         0x07,
-    //         0x08,
-    //         0x09,
-    //         0x0a,
-    //         0x0b,
-    //         0x0c,
-    //         0x0d,
-    //         0x0e,
-    //         0x0f,
-    //         0x12};
-    //     uint16_t input[nWordSize] = {0};
-
     ssi3_init(ADC_SSI_CLKRATE);
     adc_wipeADCData();
     adc_setupSequence();
 
-    // adc_chipselectBlocking(adcChain_UDrp, bTrue);
-    // ssi_transceive16Bit(SSI3, output, input, nWordSize);
-    // adc_chipselectBlocking(adcChain_UDrp, bFalse);
-
-
-    // I know, bad codestyle, but i needed a quick solution!
     cmdsADC_InitializeMeanStruct();
     cmdsADC_InitializeMeasurementDelta();
 }
 
 void adc_wipeADCData(void)
 {
-    //       /* Wipe structure */
-    // #pragma GCC diagnostic push
-    // #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+    /* Wipe structure */
     adc_setCPacks(0);
     adc_setVPacks(0);
-    // #pragma GCC diagnostic pop
 }
 
 void adc_setCPacks(uint32_t conf)
@@ -213,26 +175,6 @@ void adc_setVPacks(double value)
 
 void adc_setupSequence(void)
 {
-    // static uint32_t basicConfigDWORD = 0;
-    // basicConfigDWORD = ADC_CONF_REDAC(1023); // VRef = 2.5V
-    //                                          // basicConfigDWORD |= ADC_CONF_VREF_3V;    // Do not extend internal Reference
-    //                                          // basicConfigDWORD |= ADC_CONF_REFBUF_OFF; // Disable internal VRef Buffer
-    // basicConfigDWORD |= ADC_CONF_REF_EN;     // Enable internal VRef
-    // // basicConfigDWORD |= ADC_CONF_PD_D;       // Powerdown Channels
-    // // basicConfigDWORD |= ADC_CONF_RANGE_D;    // Range 2 * VRef
-    // // basicConfigDWORD |= ADC_CONF_PD_C;       // Powerdown Channels
-    // // basicConfigDWORD |= ADC_CONF_RANGE_C;    // Range 2 * VRef
-    // // basicConfigDWORD |= ADC_CONF_PD_B;       // Powerdown Channels
-    // // basicConfigDWORD |= ADC_CONF_RANGE_B;    // Range 2 * VRef
-    // // basicConfigDWORD |= ADC_CONF_RANGE_A;     // Range 2 * VRef
-    // // basicConfigDWORD |= ADC_CONF_NSTBY;       // Powerdown Device
-    // // basicConfigDWORD |= ADC_CONF_BUSYPOL;     // Busy-signal: lo-active
-    // // basicConfigDWORD |= ADC_CONF_BUSY_OR_INT; // Use as Interrupt-signal
-    // // basicConfigDWORD |= ADC_CONF_CLKOUT_EN; // Enable clock-out (Pin 34)
-    // // basicConfigDWORD |= ADC_CONF_CLKSEL;    // Use external conversion clock
-    // // basicConfigDWORD |= ADC_CONF_READ_EN;  // Read config-register in the next 2 cycles!
-    // // basicConfigDWORD |= ADC_CONF_WRITE_EN; // Update register contents
-
     Delay_Await(10); // Wait 10ms
     while (ssi3_ADCsBusy(adcChain_CF) || ssi3_ADCsBusy(adcChain_UDrp))
         ; // To be sure ADCs POR is finished, wait for ADC-chains ready
@@ -241,27 +183,16 @@ void adc_setupSequence(void)
     adc_setCPacks(_configuration.stdConf | ADC_CONF_WRITE_EN | ADC_CONF_READ_EN);
 
     // Send config one by one (could also be done simultaneously, but to avoid may occuring shortcuts between slave outputs)
-    // uint16_t wordCount = 0;
     for (uint8_t chainIndex = 0; chainIndex < _configuration.nChains; chainIndex++)
     {
-        // _configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] = 0;
         adc_chipselectBlocking(chainIndex, bOn);
-        // ssi_transmit16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.nWords / 2);
         ssi_transceive16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.chains[chainIndex].responseStream, _configuration.nWords / ADC_NADCS); // MOSI connected to both MISO-Pins of the ADCs -> All ADCs initialized with same message!
         adc_chipselectBlocking(chainIndex, bOff);
-        // ssi_clearRxFIFO(SSI3);
-        // while (_configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] == 0)
-        // for (uint8_t count = 6; count; count--)
-        // {
+
         adc_chipselectBlocking(chainIndex, bOn);
         for (uint8_t iSend = 4; iSend; iSend--)
             ssi_transceive16Bit(SSI3, NULL, _configuration.chains[chainIndex].confStream, _configuration.nWords); // Response is via Daisy-Chain
-        // ssi_transceive16Bit(SSI3, _configuration.zeroStream, _configuration.chains[chainIndex].responseStream, _configuration.nWords); // Alternatively
         adc_chipselectBlocking(chainIndex, bOff);
-        // ssi_receive16Bit(SSI3, _configuration.chains[chainIndex].responseStream, &wordCount, _configuration.nWords);
-        // ssi_clearRxFIFO(SSI3);
-
-        // }
     }
 }
 
@@ -284,11 +215,6 @@ void adc_reverseRaw(enum adcChain chain)
 {
     int16_t bakVal;
 
-    // uint16_t chPerADC = ADC_CHANNELS;
-    // uint16_t chPerADC = _measVal.nChannels;
-
-    // uint16_t iLowerRaw, iUpperRaw, iUpperCopy;
-    // uint16_t halfIndex = chPerADC / 2;
     uint16_t iLowerADC, iUpperADC;
     uint16_t iLowerCopy, iUpperCopy;
     uint16_t iHalfADCs = _measVal.nADCs / 2;
@@ -307,20 +233,6 @@ void adc_reverseRaw(enum adcChain chain)
             _measVal.chains[chain].raw[iUpperCopy] = bakVal;
         }
     }
-
-    // for (uint16_t iChain = 0; iChain < _measVal.nChains; iChain++)
-    // {
-    // iUpperCopy = chPerADC * (iChain + 1);
-    // iUpperRaw = iUpperCopy - halfIndex;
-    // for (iLowerRaw = iChain * chPerADC; iLowerRaw < iUpperRaw; iLowerRaw++)
-    // {
-    //     iUpperCopy--;
-
-    //     bakVal = _measVal.chains[chain].raw[iLowerRaw];
-    //     _measVal.chains[chain].raw[iLowerRaw] = _measVal.chains[chain].raw[iUpperCopy];
-    //     _measVal.chains[chain].raw[iUpperCopy] = bakVal;
-    // }
-    // }
 }
 
 void adc_convertRaw2Double(enum adcChain chain)
@@ -342,13 +254,9 @@ void adc_takeMeasurement(enum adcChain chain)
     while (ssi3_ADCsBusy(chain))
         ; // Wait for ADCs finished sampling
 
-    // uint16_t wordCnt = 0;
     adc_chipselectBlocking(chain, bTrue);
-    // ssi_transmit16Bit(SSI3, _measVal.zeroStream, _measVal.nWords);
     ssi_transceive16Bit(SSI3, _measVal.zeroStream, (uint16_t *)_measVal.chains[chain].raw, _measVal.nWords);
     adc_chipselectBlocking(chain, bFalse);
-    // ssi_receive16Bit(SSI3, (uint16_t *)_measVal.chains[chain].raw, &wordCnt, _measVal.nWords);
-    // ssi_clearRxFIFO(SSI3);
 
     adc_convertRaw2Double(chain);
 }

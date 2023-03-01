@@ -51,12 +51,8 @@ terminalOptions_t termOptions = {
         .CRLF = "\r\n",
         .stdlineTerm = termOptions.lineTerm.CRLF,
     }};
-// struct terminal_lineTerm_t lineTerm = {"\r", "\n", "\r\n", lineTerm.CRLF};
 
-// #pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wmissing-braces"
 inpLine_t _inputLine = {TERMINAL_INPUTLINE_BUFFSIZE, 0};
-// #pragma GCC diagnostic pop
 terminalCmd_t _command = {TERMINAL_CMD_AMOUNT, TERMINAL_CMD_BUFFSIZE, 0};
 
 /*******************************\
@@ -114,9 +110,8 @@ terminalCmd_t *terminal_fetchCmd(void)
             _inputLine.Filled--;
         else if (c != '\b')
             _inputLine.Filled++;
-        //_inputLine.LineBuffer[_inputLine.Filled] = '\0'; // Be sure string is always terminated
 
-        // Add option to echo on/off
+        // Add option to echo on/off in future (nice to have)
         // uart1_putc(c);
     }
 
@@ -126,8 +121,6 @@ terminalCmd_t *terminal_fetchCmd(void)
 terminalCmd_t *terminal_decodeLineBuffer(void)
 {
     const char delim[] = " ";
-    // strtok causes jump into default handler!
-    // char *tokStart = strtok(_inputLine.LineBuffer, delim); // Initiate strtok and search for space-character ' '
     char *tokStart = strtok(_inputLine.LineBuffer, delim); // Initiate strtok and search for space-character ' '
     while (tokStart != NULL)
     {
@@ -253,7 +246,6 @@ enum terminalError terminal_runCmd(terminalCmd_t *cmd)
 
 void terminal_echo(terminalCmd_t *cmd)
 {
-    // uart1_Transmit(termOptions.lineTerm.stdlineTerm);
     uint16_t lastArgc = cmd->argc - 1;
     for (uint16_t argi = 1; argi <= lastArgc; argi++)
     {
@@ -297,7 +289,7 @@ void terminal_changeBaud(terminalCmd_t *cmd)
     uart1_setBaud(baud);
 }
 
-// void terminal_option_echo(terminalCmd_t *cmd)
+// void terminal_option_echo(terminalCmd_t *cmd) // Nice2Have implementation
 // {
 // }
 
@@ -332,7 +324,6 @@ void terminal_err(terminalCmd_t *cmd)
     terminal_send(cmd->argv[CMD_ERR_HANDLE_INDEX]);
     terminal_send(",");
     terminal_sendline(cmd->argv[CMD_ERRMSG_INDEX]);
-    // uart1_Transmit(termOptions.lineTerm.stdlineTerm);
 }
 
 void terminal_unknown(terminalCmd_t *cmd)
@@ -342,7 +333,7 @@ void terminal_unknown(terminalCmd_t *cmd)
 #pragma GCC diagnostic ignored "-Waddress"
     if (cmd->argv[0] != NULL)
     {
-// // #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
         terminal_send(",");
         terminal_send(cmd->argv[CMD_HANDLE_INDEX]);
     }

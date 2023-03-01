@@ -61,9 +61,6 @@ dacOutputString_t _dacOutputString = {.nSize = CMDS_DAC_OUTPUTSTRINGBUFFER_SIZE,
 \*******************************/
 void cmdsDAC_parseArgs(terminalCmd_t *cmd)
 {
-  // Convert voltage as double
-  // double voltage = atof(cmd->argv[CMDS_DAC_VSET_VOLTAGEINDEX]);
-
   // Determine which channels should be updated
   // How much separators given
   uint8_t cSgmnts = 1 + cstrCntChar(cmd->argv[CMDS_DAC_VSET_CHANNEL_STARTINDEX],
@@ -155,10 +152,6 @@ void cmdsDAC_setVoltage(terminalCmd_t *cmd)
       }
       dac_sendChVoltage(iCh);
     }
-
-    //   _dacChRequests.ChRequests[iQuery].requested = bFalse;
-    //   dac_setChVoltage(iCh, _dacChRequests.ChRequests[iQuery].voltage);
-    // }
   }
   terminal_ACK(NULL);
 }
@@ -178,8 +171,6 @@ void cmdsDAC_getVoltage(terminalCmd_t *cmd)
   }
 
   cmdsDAC_parseArgs(cmd);
-  // terminal_ACK(NULL);
-  // terminal_send(termOptions.lineTerm.stdlineTerm);
 
   _dacOutputString.nFill = 0;
   _dacOutputString.string[0] = '\0';
