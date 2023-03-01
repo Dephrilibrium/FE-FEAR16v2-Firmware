@@ -247,7 +247,7 @@ void adc_setupSequence(void)
         // _configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] = 0;
         adc_chipselectBlocking(chainIndex, bOn);
         // ssi_transmit16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.nWords / 2);
-        ssi_transceive16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.chains[chainIndex].responseStream, _configuration.nWords / 2); // MOSI connected to both MISO-Pins of the ADCs
+        ssi_transceive16Bit(SSI3, _configuration.chains[chainIndex].confStream, _configuration.chains[chainIndex].responseStream, _configuration.nWords / ADC_NADCS); // MOSI connected to both MISO-Pins of the ADCs -> All ADCs initialized with same message!
         adc_chipselectBlocking(chainIndex, bOff);
         // ssi_clearRxFIFO(SSI3);
         // while (_configuration.chains[chainIndex].responseConf[_configuration.nPacks - 1] == 0)
