@@ -193,7 +193,7 @@ enum terminalError terminal_runCmd(terminalCmd_t *cmd)
     | Checking first the typic used commands to reduce the comparison   |
     | effort.                                                           |
     \*******************************************************************/
-    // !!! MOST USED COMMANDS AS FIRST !!!
+    // !!! MOST USED COMMANDS FIRST !!!
     // ADC getvalues
     if (strcmp(CMDS_ADC_VGET, cmd->argv[CMD_HANDLE_INDEX]) == 0)
         cmdsADC_getVoltage(cmd);
