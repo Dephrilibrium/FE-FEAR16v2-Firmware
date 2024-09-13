@@ -169,14 +169,14 @@ void adc_setVPacks(double value)
         for (uint16_t rIndex = 0; rIndex < _measVal.nChannels; rIndex++)
             _measVal.chains[chainIndex].raw[rIndex] = setValue;
 
-    adc_convertRaw2Double(adcChain_CF);
+    adc_convertRaw2Double(adcChain_SHNT);
     adc_convertRaw2Double(adcChain_UDrp);
 }
 
 void adc_setupSequence(void)
 {
     Delay_Await(10); // Wait 10ms
-    while (ssi3_ADCsBusy(adcChain_CF) || ssi3_ADCsBusy(adcChain_UDrp))
+    while (ssi3_ADCsBusy(adcChain_SHNT) || ssi3_ADCsBusy(adcChain_UDrp))
         ; // To be sure ADCs POR is finished, wait for ADC-chains ready
 
     // Prepare config

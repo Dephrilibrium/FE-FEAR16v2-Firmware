@@ -38,7 +38,7 @@
 \*******************************/
 enum adcChain
 {
-    adcChain_CF,
+    adcChain_SHNT,
     adcChain_UDrp,
     adcChain_Count,
 };

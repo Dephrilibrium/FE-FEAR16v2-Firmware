@@ -27,19 +27,19 @@
 // #define PD2_ADC_MISO3 BIT(2) // SSI3-MasterInSlaveOut
 // #define PD3_ADC_MOSI3 BIT(3) // SSi3-MasterOutSlaveIn
 
-// // Currenflow-ADCs (CFADC)
-// #define PF3_CFADC_CS BIT(3)     // Chipselect (low)
-// #define PC4_CFADC_RST BIT(4)    // Reset (low)
-// #define PC5_CFADC_CONVST BIT(5) // Start measurement
-// #define PC6_CFADC_BUSY1 BIT(6)  // Busy first daisy-chain
-// #define PC7_CFADC_BUSY2 BIT(7)  // Busy seconf daisy-chain
+// // Currenflow-ADCs (SHNTADC)
+// #define PF3_SHNTADC_CS BIT(3)     // Chipselect (low)
+// #define PC4_SHNTADC_RST BIT(4)    // Reset (low)
+// #define PC5_SHNTADC_CONVST BIT(5) // Start measurement
+// #define PC6_SHNTADC_BUSY1 BIT(6)  // Busy first daisy-chain
+// #define PC7_SHNTADC_BUSY2 BIT(7)  // Busy seconf daisy-chain
 
-// // Voltragedrop-ADCs (UDRPADC)
-// #define PD1_UDRPADC_CS BIT(1)     // Chipselect
-// #define PE1_UDRPADC_RST BIT(1)    // Reset (low)
-// #define PE2_UDRPADC_CONVST BIT(2) // Start measurement
-// #define PE4_UDRPADC_BUSY1 BIT(4)  // Busy first Daisy-chain
-// #define PE5_UDRPADC_BUSY2 BIT(5)  // Busy second Daisy-chain
+// // Voltragedrop-ADCs (DROPADC)
+// #define PD1_DROPADC_CS BIT(1)     // Chipselect
+// #define PE1_DROPADC_RST BIT(1)    // Reset (low)
+// #define PE2_DROPADC_CONVST BIT(2) // Start measurement
+// #define PE4_DROPADC_BUSY1 BIT(4)  // Busy first Daisy-chain
+// #define PE5_DROPADC_BUSY2 BIT(5)  // Busy second Daisy-chain
 
 // #define GPIO_PCTL_CLEAR(x) OPTION(0xf, x * 4)       // Each bitfield has 4 bits
 // #define GPIOD_PCTL_PD0_SSI3CLK OPTION(0x02, 0 * 4)  // PCTL for PA2 = SPI0-CLK

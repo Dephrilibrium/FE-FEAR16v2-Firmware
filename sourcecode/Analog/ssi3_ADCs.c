@@ -24,19 +24,19 @@
 #define PD2_ADC_MISO3 BIT(2) // SSI3-MasterInSlaveOut
 #define PD3_ADC_MOSI3 BIT(3) // SSi3-MasterOutSlaveIn
 
-// Currenflow-ADCs (CFADC)
-#define PF3_CFADC_CS BIT(3)     // Chipselect (low)
-#define PC4_CFADC_RST BIT(4)    // Reset (low)
-#define PC5_CFADC_CONVST BIT(5) // Start measurement
-#define PC6_CFADC_BUSY1 BIT(6)  // Busy first daisy-chain
-#define PC7_CFADC_BUSY2 BIT(7)  // Busy seconf daisy-chain
+// Currenflow-ADCs (SHNTADC)
+#define PF3_SHNTADC_CS BIT(3)     // Chipselect (low)
+#define PC4_SHNTADC_RST BIT(4)    // Reset (low)
+#define PC5_SHNTADC_CONVST BIT(5) // Start measurement
+#define PC6_SHNTADC_BUSY1 BIT(6)  // Busy first daisy-chain
+#define PC7_SHNTADC_BUSY2 BIT(7)  // Busy seconf daisy-chain
 
-// Voltragedrop-ADCs (UDRPADC)
-#define PD1_UDRPADC_CS BIT(1)     // Chipselect
-#define PE1_UDRPADC_RST BIT(1)    // Reset (low)
-#define PE2_UDRPADC_CONVST BIT(2) // Start measurement
-#define PE4_UDRPADC_BUSY1 BIT(4)  // Busy first Daisy-chain
-#define PE5_UDRPADC_BUSY2 BIT(5)  // Busy second Daisy-chain
+// Voltragedrop-ADCs (DROPADC)
+#define PD1_DROPADC_CS BIT(1)     // Chipselect
+#define PE1_DROPADC_RST BIT(1)    // Reset (low)
+#define PE2_DROPADC_CONVST BIT(2) // Start measurement
+#define PE4_DROPADC_BUSY1 BIT(4)  // Busy first Daisy-chain
+#define PE5_DROPADC_BUSY2 BIT(5)  // Busy second Daisy-chain
 
 #define GPIO_PCTL_CLEAR(x) OPTION(0xf, x * 4)       // Each bitfield has 4 bits
 #define GPIOD_PCTL_PD0_SSI3CLK OPTION(0x01, 0 * 4)  // PCTL for PA2 = SSI3-CLK
@@ -122,18 +122,18 @@ void ssi3_init(enum ssi_clkRate clkRate)
                     | PD3_ADC_MOSI3; // Master Out Slave In
 
     // CurrentFlow-ADCs
-    GPIOF->AFSEL &= ~PF3_CFADC_CS;        // ~Chipselect
-    GPIOC->AFSEL &= ~(PC4_CFADC_RST       // ~Reset
-                      | PC5_CFADC_CONVST  // Start
-                      | PC6_CFADC_BUSY1   // Busy CF-ADC1
-                      | PC7_CFADC_BUSY2); // Busy CF-ADC2
+    GPIOF->AFSEL &= ~PF3_SHNTADC_CS;        // ~Chipselect
+    GPIOC->AFSEL &= ~(PC4_SHNTADC_RST       // ~Reset
+                      | PC5_SHNTADC_CONVST  // Start
+                      | PC6_SHNTADC_BUSY1   // Busy SHNT-ADC1
+                      | PC7_SHNTADC_BUSY2); // Busy SHNT-ADC2
 
     // Voltagedrop-ADCs
-    GPIOD->AFSEL &= ~PD1_UDRPADC_CS;        // ~Chipselect
-    GPIOE->AFSEL &= ~(PE1_UDRPADC_RST       // ~Reset
-                      | PE2_UDRPADC_CONVST  // Start
-                      | PE4_UDRPADC_BUSY1   // Busy UDRP-ADC1
-                      | PE5_UDRPADC_BUSY2); // Busy UDRP-ADC2
+    GPIOD->AFSEL &= ~PD1_DROPADC_CS;        // ~Chipselect
+    GPIOE->AFSEL &= ~(PE1_DROPADC_RST       // ~Reset
+                      | PE2_DROPADC_CONVST  // Start
+                      | PE4_DROPADC_BUSY1   // Busy DROP-ADC1
+                      | PE5_DROPADC_BUSY2); // Busy DROP-ADC2
 
     // Change PCTL
     // Both
@@ -160,14 +160,14 @@ void ssi3_init(enum ssi_clkRate clkRate)
 
     // Make output where necessary
     // Currentflow-ADCs
-    GPIOF->DIR |= PF3_CFADC_CS;       // ~CS
-    GPIOC->DIR |= PC4_CFADC_RST       // ~RST
-                  | PC5_CFADC_CONVST; // Star meas
+    GPIOF->DIR |= PF3_SHNTADC_CS;       // ~CS
+    GPIOC->DIR |= PC4_SHNTADC_RST       // ~RST
+                  | PC5_SHNTADC_CONVST; // Star meas
 
     // Voltagedrop-ADCs
-    GPIOD->DIR |= PD1_UDRPADC_CS;       // ~CS
-    GPIOE->DIR |= PE1_UDRPADC_RST       // ~RST
-                  | PE2_UDRPADC_CONVST; // Star meas
+    GPIOD->DIR |= PD1_DROPADC_CS;       // ~CS
+    GPIOE->DIR |= PE1_DROPADC_RST       // ~RST
+                  | PE2_DROPADC_CONVST; // Star meas
 
     // IO Enable
     // Both
@@ -176,25 +176,25 @@ void ssi3_init(enum ssi_clkRate clkRate)
                   | PD3_ADC_MOSI3; // Master Out Slave In
 
     // CurrentFlow-ADCs
-    GPIOF->DEN |= PF3_CFADC_CS;      // ~Chipselect
-    GPIOC->DEN |= PC4_CFADC_RST      // ~Reset
-                  | PC5_CFADC_CONVST // Start
-                  | PC6_CFADC_BUSY1  // Busy CF-ADC1
-                  | PC7_CFADC_BUSY2; // Busy CF-ADC2
+    GPIOF->DEN |= PF3_SHNTADC_CS;      // ~Chipselect
+    GPIOC->DEN |= PC4_SHNTADC_RST      // ~Reset
+                  | PC5_SHNTADC_CONVST // Start
+                  | PC6_SHNTADC_BUSY1  // Busy SHNT-ADC1
+                  | PC7_SHNTADC_BUSY2; // Busy SHNT-ADC2
 
     // Voltagedrop-ADCs
-    GPIOD->DEN |= PD1_UDRPADC_CS;      // ~Chipselect
-    GPIOE->DEN |= PE1_UDRPADC_RST      // ~Reset
-                  | PE2_UDRPADC_CONVST // Start
-                  | PE4_UDRPADC_BUSY1  // Busy UDRP-ADC1
-                  | PE5_UDRPADC_BUSY2; // Busy UDRP-ADC2
+    GPIOD->DEN |= PD1_DROPADC_CS;      // ~Chipselect
+    GPIOE->DEN |= PE1_DROPADC_RST      // ~Reset
+                  | PE2_DROPADC_CONVST // Start
+                  | PE4_DROPADC_BUSY1  // Busy DROP-ADC1
+                  | PE5_DROPADC_BUSY2; // Busy DROP-ADC2
 
     // Prepare DAC for SSI0-Init
-    ssi3_rstADCs(adcChain_CF, bTrue);       // Set ADC-reset while init ssi3
+    ssi3_rstADCs(adcChain_SHNT, bTrue);       // Set ADC-reset while init ssi3
     ssi3_rstADCs(adcChain_UDrp, bTrue);     // Set ADC-reset while init ssi3
-    ssi3_selectADCs(adcChain_CF, bFalse);   // Deselect ADCs
+    ssi3_selectADCs(adcChain_SHNT, bFalse);   // Deselect ADCs
     ssi3_selectADCs(adcChain_UDrp, bFalse); // Deselect ADCs
-    ssi3_convADCs(adcChain_CF, bFalse);     // Stop accidentially conversion
+    ssi3_convADCs(adcChain_SHNT, bFalse);     // Stop accidentially conversion
     ssi3_convADCs(adcChain_UDrp, bFalse);   // Stop accidentially conversion
 
     // SPI0
@@ -226,7 +226,7 @@ void ssi3_init(enum ssi_clkRate clkRate)
     ssi_enable(SSI3, bOn);
 
     // Prepare DAC for regular use
-    ssi3_rstADCs(adcChain_CF, bFalse);   // Set ADC-reset while init ssi3
+    ssi3_rstADCs(adcChain_SHNT, bFalse);   // Set ADC-reset while init ssi3
     ssi3_rstADCs(adcChain_UDrp, bFalse); // Set ADC-reset while init ssi3
 }
 
@@ -242,18 +242,18 @@ void ssi3_selectADCs(enum adcChain chain, cBool state)
 {
     switch (chain)
     {
-    case adcChain_CF:
+    case adcChain_SHNT:
         if (state)
-            GPIOF->DATA &= ~PF3_CFADC_CS;
+            GPIOF->DATA &= ~PF3_SHNTADC_CS;
         else
-            GPIOF->DATA |= PF3_CFADC_CS;
+            GPIOF->DATA |= PF3_SHNTADC_CS;
         break;
 
     case adcChain_UDrp:
         if (state)
-            GPIOD->DATA &= ~PD1_UDRPADC_CS;
+            GPIOD->DATA &= ~PD1_DROPADC_CS;
         else
-            GPIOD->DATA |= PD1_UDRPADC_CS;
+            GPIOD->DATA |= PD1_DROPADC_CS;
         break;
 
     default:
@@ -265,18 +265,18 @@ void ssi3_rstADCs(enum adcChain chain, cBool state)
 {
     switch (chain)
     {
-    case adcChain_CF:
+    case adcChain_SHNT:
         if (state)
-            GPIOC->DATA |= PC4_CFADC_RST;
+            GPIOC->DATA |= PC4_SHNTADC_RST;
         else
-            GPIOC->DATA &= ~PC4_CFADC_RST;
+            GPIOC->DATA &= ~PC4_SHNTADC_RST;
         break;
 
     case adcChain_UDrp:
         if (state)
-            GPIOE->DATA |= PE1_UDRPADC_RST;
+            GPIOE->DATA |= PE1_DROPADC_RST;
         else
-            GPIOE->DATA &= ~PE1_UDRPADC_RST;
+            GPIOE->DATA &= ~PE1_DROPADC_RST;
         break;
 
     default:
@@ -288,18 +288,18 @@ void ssi3_convADCs(enum adcChain chain, cBool state)
 {
     switch (chain)
     {
-    case adcChain_CF:
+    case adcChain_SHNT:
         if (state)
-            GPIOC->DATA |= PC5_CFADC_CONVST;
+            GPIOC->DATA |= PC5_SHNTADC_CONVST;
         else
-            GPIOC->DATA &= ~PC5_CFADC_CONVST;
+            GPIOC->DATA &= ~PC5_SHNTADC_CONVST;
         break;
 
     case adcChain_UDrp:
         if (state)
-            GPIOE->DATA |= PE2_UDRPADC_CONVST;
+            GPIOE->DATA |= PE2_DROPADC_CONVST;
         else
-            GPIOE->DATA &= ~PE2_UDRPADC_CONVST;
+            GPIOE->DATA &= ~PE2_DROPADC_CONVST;
         break;
 
     default:
@@ -312,14 +312,14 @@ cBool ssi3_ADCsBusy(enum adcChain chain)
     uint32_t status;
     switch (chain)
     {
-    case adcChain_CF:
+    case adcChain_SHNT:
         status = GPIOC->DATA;
-        status &= (PC6_CFADC_BUSY1); // | PC7_CFADC_BUSY2);
+        status &= (PC6_SHNTADC_BUSY1); // | PC7_SHNTADC_BUSY2);
         break;
 
     case adcChain_UDrp:
         status = GPIOE->DATA;
-        status &= (PE4_UDRPADC_BUSY1); // | PE5_UDRPADC_BUSY2);
+        status &= (PE4_DROPADC_BUSY1); // | PE5_DROPADC_BUSY2);
         break;
 
     default:

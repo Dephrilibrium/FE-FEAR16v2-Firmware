@@ -116,19 +116,41 @@ Open any file from the project (VSCode uses this to determine the root-path) and
 ## Commands
 Commands are executed by the `terminal_runCmd` function in `terminal/terminal.c` and, on successful execution, acknowledged (`ack`) or, otherwise, not acknowledged (`nak`) after execution. The function contains an if-elseif tree, comparing the prompted input with implemented commands. Currently implemented commands are listed in the following table:
 
-| Command                     | Description                                                | Example                   | Comment                                                         |
-|-----------------------------|------------------------------------------------------------|---------------------------|-----------------------------------------------------------------|
+| Basic Command               | Description                                                | Example                   | Comment                                                         |
+|:----------------------------|:-----------------------------------------------------------|:--------------------------|:----------------------------------------------------------------|
+|                             |                                                            |                           |                                                                 |
+| Generic commands            |                                                            |                           |                                                                 |
 | `echo <arg1> <arg2> ...`    | echo sends all given arguments back.                       | `echo Hello World`        | Output: `Hello World` &rarr; Useful for connection tests.       |
-| `TERM:BAUD <arg1>`          | Sets the baudrate `arg1`.                                  | `TERM:BAUD 115200`        | Default baudrate: `115200`; Implemented but untested.           |
-| `TERM:LINETERM <arg1>`      | Set the line-termination `arg1`                            | `TERM:LINETERM \r\n`      | Possible arguments: `\r\n`, `\n`, `\r`                          |
+| `TERM:BAUD <baud>`          | Sets the baudrate `<baud>`.                                | `TERM:BAUD 115200`        | Default baudrate: `115200`; Implemented but untested.           |
+| `TERM:LINETERM <term>`      | Set the line-termination `<term>`                          | `TERM:LINETERM \r\n`      | Possible arguments: `\r\n`, `\n`, `\r`. Default `\r\n`.         |
 | `IDN?`                      | Returns Type and Firmware-Version of the device.           | `IDN?`                    | Output: `ack  Device,FEAR16v2,Firmware-Build,1.0.0.2`           |
 |                             |                                                            |                           |                                                                 |
-| `ADC:GET <Chain> <Channels>`| Returns the measured values of the requested chain (`CF`/`UDRP`) and channels (`Ch0..Ch15`). Channels can be given in the forms `Ch0,Ch4, Ch5`, `Ch0-Ch4` or `Ch0, Ch3-Ch5`.                                                     |                           |                                                                 |
+| ADC-Commands                |                                                            |                           |                                                                 |
+| `ADC:GET <Chain> <Channels>`| Returns the measured values of the requested chain (`SHNT`/`DROP`) and channels (`Ch0..Ch15`). Channels can be given in the forms `Ch0,Ch4,Ch5`, `Ch0-Ch4` or `Ch0,Ch3-Ch5`. | `ADC:GET SHNT Ch0-Ch3` | Return looks like `ack 0.0000,-1.2345,-10.0000,10.000`|
+| `ADC:NMEAN <nPnts>`         | Sets the number of averaging points:<br>($NMEAN * t_{MDELT} = t_{averaging}$) | `ADC:NMEAN 10` | When requesting a measurement-value, the return is the averaged value of the last 10 measured points. Min: 1; Max: 100; Default: 10 |
+| `ADC:MDELT <time_ms>`        | Sets the measurement-interval for the individual datapoints in milliseconds:<br>($t_{MDELT} * NMEAN = t_{averaging}$) | `ADC:MDELT 10` | When requesting a measurement-value, the return is the averaged value of the last 10 measured points. Min: 5; Max: 20000; Default: 10 |
+| `ADC:MDELT <time_ms>`        | Sets the measurement-interval for the individual datapoints in milliseconds:<br>($t_{MDELT} * NMEAN = t_{averaging}$) | `ADC:MDELT 10` | When requesting a measurement-value, the return is the averaged value of the last 10 measured points. Min: 5; Max: 20000; Default: 10 |
 |                             |                                                            |                           |                                                                 |
+| DAC-Commands            |                                                            |                           |                                                                 |
+| `DAC:SET <Channel/s>:<Voltage/s>`| Sets the given voltage (`-10..10`V) to the corresponding channels (`Ch0..Ch15`). Channels and voltages can be given in following forms: `Ch0:0.0000,Ch3:1.2345,Ch5:10.0000`, `Ch0-Ch4:-1.2345` or `Ch0:9.0000,Ch3-Ch5:-4.5000`. | `DAC:SET Ch0-Ch3:0.0000` | Sets the DAC outputs of Ch0-Ch3 to 0V |
+| `ADC:GET <Channels>`| Returns the  channels (`Ch0..Ch15`) current output voltage. Channels can be given in the forms `Ch0,Ch4,Ch5`, `Ch0-Ch4` or `Ch0,Ch3-Ch5`. | `DAC:GET SHNT Ch0-Ch3` | Return looks like `ack 0.0000,0.0000,0.0000,0.0000`|
 
 **Note:**
 - The structure of the commands is based on SCPI commands.
 - By default space is used as command-separator.
+- The firmware measures continuously points in an interval of `MDELT` (Default: 10ms) and averages `NMEAN` individual points together (Default: 100ms = 5 NPLC). On a request, the currently stored average-value is returned instantly. This means that the request does **NOT** start the measurement, but just queries the latest, already measured, average-value! If you need to synchronize with other devices, where the request starts the measurement action, then add a $NMEAN * t_{MDELT} = t_{Average}$ delay before sending the request from your data aquisition software/script.
+
+
+## Daisy-Chains
+The board uses ADCs and DACs with 8 In-/Outputs per chip. For 16 In-/Outputs, ADCs and DACs are daisy-chained together. Due to the communication with SPI, the order of the data is different for 1 (no daisy-chain) or 2 (daisy-chain) chips. The software can handle this by a simple software-define in the ADC/DAC wrapper files:
+- `adcWrapper.h`: `#define ADC_NADCS` is the number of ADCs daisy-chained together
+- `dacWrapper.h`: `#define ADC_NDACS` is the number of DACs daisy-chained together
+**Note:**
+- This board were tested with daisy-chain lengths of 1 and 2!
+- When only using 1 chip per daisy-chain, you need to create a short between MOSI (SPI data in) and MISO (SPI data out) of the second chip! These two pins are marked by the silkscreen of the mainboard-PCB.
+
+
+
 
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)

@@ -141,7 +141,7 @@ void cmdsADC_AdjustNMean(terminalCmd_t *cmd)
     return;
   }
 
-  for (uint16_t iChain = adcChain_CF; iChain < ADC_NCHAINS; iChain++)
+  for (uint16_t iChain = adcChain_SHNT; iChain < ADC_NCHAINS; iChain++)
   {
     for (uint16_t iChnl = 0; iChnl < ADC_NALLCHPACKS; iChnl++)
     {
@@ -159,9 +159,9 @@ void cmdsADC_AdjustNMean(terminalCmd_t *cmd)
 void cmdsADC_parseArgs(terminalCmd_t *cmd)
 {
   // Get target chain
-  if (strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_CF) == 0)
-    _adcChRequests.targetChain = adcChain_CF;
-  else if (strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_UDRP) == 0)
+  if (strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_SHNT) == 0)
+    _adcChRequests.targetChain = adcChain_SHNT;
+  else if (strcmp(cmd->argv[CMDS_ADC_VGET_CHAININDEX], CMDS_ADC_VGET_CHAIN_DROP) == 0)
     _adcChRequests.targetChain = adcChain_UDrp;
   else // Unknown Chain-Identifier -> Avoid residual code to save time -> return
   {
@@ -231,7 +231,7 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
   }
 
   cmdsADC_parseArgs(cmd);
-  if (_adcChRequests.targetChain < adcChain_CF || _adcChRequests.targetChain > adcChain_UDrp)
+  if (_adcChRequests.targetChain < adcChain_SHNT || _adcChRequests.targetChain > adcChain_UDrp)
   {
     terminal_NAK("Unknown ADC-chain");
     return;
@@ -255,7 +255,7 @@ void cmdsADC_getVoltage(terminalCmd_t *cmd)
 
 void cmdsADC_measVoltage2Mean(void)
 {
-  for (uint16_t iChain = adcChain_CF; iChain < ADC_NCHAINS; iChain++)
+  for (uint16_t iChain = adcChain_SHNT; iChain < ADC_NCHAINS; iChain++)
   {
     adc_takeMeasurement(iChain);
     adc_measurementValues_t *measurements = adc_grabMeasurements();
